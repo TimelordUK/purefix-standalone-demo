@@ -10,20 +10,35 @@ public class ConsoleLogFactory : ILogFactory
     private readonly Serilog.ILogger _appLogger;
     private readonly Serilog.ILogger _plainLogger;
 
-    public ConsoleLogFactory(ISessionDescription? description = null)
+    public ConsoleLogFactory(ISessionDescription? description = null, string? logDir = null)
     {
-        // App logger - with timestamps and thread info
-        _appLogger = new LoggerConfiguration()
+        var appConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.WithThreadId()
-            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message}{NewLine}{Exception}")
-            .CreateLogger();
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message}{NewLine}{Exception}");
 
-        // FIX message logger - plain output
-        _plainLogger = new LoggerConfiguration()
+        var plainConfig = new LoggerConfiguration()
             .MinimumLevel.Information()
-            .WriteTo.Console(outputTemplate: "{Message}{NewLine}")
-            .CreateLogger();
+            .WriteTo.Console(outputTemplate: "{Message}{NewLine}");
+
+        if (logDir != null)
+        {
+            Directory.CreateDirectory(logDir);
+            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
+
+            // App log file
+            appConfig.WriteTo.File(
+                Path.Combine(logDir, $"app-{timestamp}.log"),
+                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message}{NewLine}{Exception}");
+
+            // FIX message log file (plain)
+            plainConfig.WriteTo.File(
+                Path.Combine(logDir, $"fix-{timestamp}.log"),
+                outputTemplate: "{Message}{NewLine}");
+        }
+
+        _appLogger = appConfig.CreateLogger();
+        _plainLogger = plainConfig.CreateLogger();
     }
 
     public PureFix.Types.ILogger MakeLogger(string name)

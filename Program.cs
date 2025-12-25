@@ -6,22 +6,28 @@ using PureFix.Types;
 using TradeCaptureDemo.Support;
 
 // Parse command line args
-var mode = args.Length > 0 ? args[0].ToLower() : "reset";
+var argsList = args.ToList();
+var enableLogs = argsList.Remove("--log") || argsList.Remove("-l");
+var mode = argsList.Count > 0 ? argsList[0].ToLower() : "reset";
 
 Console.WriteLine("PureFix Standalone Trade Capture Demo");
 Console.WriteLine("======================================");
 Console.WriteLine($"Mode: {mode}");
+if (enableLogs) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
 Console.WriteLine();
 
 if (mode == "help" || mode == "-h" || mode == "--help")
 {
-    Console.WriteLine("Usage: dotnet run [mode]");
+    Console.WriteLine("Usage: dotnet run [mode] [options]");
     Console.WriteLine();
     Console.WriteLine("Modes:");
     Console.WriteLine("  reset        - Always reset sequence numbers (default)");
     Console.WriteLine("  recovery     - Use file store, resume from last session");
     Console.WriteLine("  broker-reset - Client sends N, broker responds Y (forces reset)");
     Console.WriteLine("  clear        - Delete store files and exit");
+    Console.WriteLine();
+    Console.WriteLine("Options:");
+    Console.WriteLine("  --log, -l    - Enable file logging (writes to logs/ directory)");
     Console.WriteLine();
     Console.WriteLine("Recovery test:");
     Console.WriteLine("  1. dotnet run clear        # Start fresh");
@@ -40,6 +46,7 @@ var baseDir = AppContext.BaseDirectory;
 var dictRootPath = Path.Join(baseDir, "Data");
 var sessionRootPath = Path.Join(dictRootPath, "Session");
 var storeDir = Path.Join(baseDir, "store");
+var logDir = enableLogs ? Path.Join(baseDir, "logs") : null;
 
 if (mode == "clear")
 {
@@ -84,13 +91,13 @@ else
 Console.WriteLine();
 
 // Start the acceptor (server) first
-var acceptorTask = StartSession(acceptorConfig, dictRootPath, "Server");
+var acceptorTask = StartSession(acceptorConfig, dictRootPath, "Server", logDir);
 
 // Wait a bit for the server to start listening
 await Task.Delay(500);
 
 // Start the initiator (client)
-var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client");
+var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client", logDir);
 
 // Wait for both to complete
 await Task.WhenAll(acceptorTask, initiatorTask);
@@ -98,7 +105,7 @@ await Task.WhenAll(acceptorTask, initiatorTask);
 Console.WriteLine();
 Console.WriteLine("Demo complete!");
 
-static async Task StartSession(string configPath, string dictRootPath, string name)
+static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir)
 {
     Console.WriteLine($"Starting {name}...");
 
@@ -111,7 +118,7 @@ static async Task StartSession(string configPath, string dictRootPath, string na
     Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
 
     // Create log factory from config
-    var logFactory = new ConsoleLogFactory(config.Description);
+    var logFactory = new ConsoleLogFactory(config.Description, logDir);
     var queue = new AsyncWorkQueue();
     var clock = new RealtimeClock();
 
