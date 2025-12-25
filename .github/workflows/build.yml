@@ -9,7 +9,6 @@ on:
 
 env:
   DOTNET_VERSION: '9.0.x'
-  PUREFIX_VERSION: '0.1.2-alpha'
 
 jobs:
   build:
@@ -25,20 +24,11 @@ jobs:
       with:
         dotnet-version: ${{ env.DOTNET_VERSION }}
 
-    - name: Install purefix-gen tool
-      run: dotnet tool install --global PureFix.Generator --version ${{ env.PUREFIX_VERSION }}
-
-    - name: Generate types from custom dictionary
-      run: |
-        purefix-gen -D Data/FIX50SP2-TC.xml -g -p ./Generated \
-          --nuget --pkg-version ${{ env.PUREFIX_VERSION }} \
-          --namespace TradeCaptureDemo.Types.FIX50SP2TC
-
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Restore tools and dependencies
+      run: dotnet tool restore && dotnet restore
 
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build --configuration Release
 
     - name: Run demo (quick test)
       run: |

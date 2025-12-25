@@ -1,0 +1,60 @@
+<Project>
+  <PropertyGroup>
+    <!-- Configuration for type generation -->
+    <PureFixDictionary>Data/FIX50SP2-TC.xml</PureFixDictionary>
+    <PureFixGeneratedPath>Generated</PureFixGeneratedPath>
+    <PureFixNamespace>TradeCaptureDemo.Types.FIX50SP2TC</PureFixNamespace>
+    <PureFixVersion>0.1.2-alpha</PureFixVersion>
+  </PropertyGroup>
+
+  <!-- Only run generation from the main project, not the generated project -->
+  <!-- Run before Restore so the generated project is available for restore -->
+  <Target Name="GeneratePureFixTypes"
+          BeforeTargets="Restore;CollectPackageReferences"
+          Condition="'$(MSBuildProjectName)' == 'TradeCaptureDemo'">
+
+    <!-- Check if generation is needed by comparing timestamps -->
+    <PropertyGroup>
+      <_DictionaryPath>$(MSBuildProjectDirectory)/$(PureFixDictionary)</_DictionaryPath>
+      <_GeneratedCsproj>$(MSBuildProjectDirectory)/$(PureFixGeneratedPath)/$(PureFixNamespace)/$(PureFixNamespace).csproj</_GeneratedCsproj>
+    </PropertyGroup>
+
+    <!-- Determine if regeneration is needed -->
+    <PropertyGroup>
+      <_NeedsRegeneration Condition="!Exists('$(_GeneratedCsproj)')">true</_NeedsRegeneration>
+    </PropertyGroup>
+
+    <!-- Compare timestamps if generated file exists -->
+    <PropertyGroup Condition="Exists('$(_GeneratedCsproj)')">
+      <_DictModified>$([System.IO.File]::GetLastWriteTime('$(_DictionaryPath)').Ticks)</_DictModified>
+      <_GenModified>$([System.IO.File]::GetLastWriteTime('$(_GeneratedCsproj)').Ticks)</_GenModified>
+      <_NeedsRegeneration Condition="$(_DictModified) &gt; $(_GenModified)">true</_NeedsRegeneration>
+    </PropertyGroup>
+
+    <Message Text="PureFix: Dictionary is newer than generated types, regenerating..."
+             Importance="high"
+             Condition="'$(_NeedsRegeneration)' == 'true'" />
+
+    <Message Text="PureFix: Generated types are up to date"
+             Importance="normal"
+             Condition="'$(_NeedsRegeneration)' != 'true'" />
+
+    <!-- Run the generator if needed -->
+    <Exec Command="dotnet tool restore"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_NeedsRegeneration)' == 'true'" />
+
+    <Exec Command="dotnet tool run purefix-gen -D $(PureFixDictionary) -g -p $(PureFixGeneratedPath) --nuget --pkg-version $(PureFixVersion) --namespace $(PureFixNamespace)"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_NeedsRegeneration)' == 'true'" />
+
+    <!-- Restore the generated project after creation -->
+    <Exec Command="dotnet restore $(PureFixGeneratedPath)/$(PureFixNamespace)/$(PureFixNamespace).csproj"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          Condition="'$(_NeedsRegeneration)' == 'true'" />
+
+    <Message Text="PureFix: Type generation complete"
+             Importance="high"
+             Condition="'$(_NeedsRegeneration)' == 'true'" />
+  </Target>
+</Project>

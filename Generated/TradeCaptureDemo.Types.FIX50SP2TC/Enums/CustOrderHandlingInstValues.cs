@@ -1,0 +1,86 @@
+using System;
+
+namespace TradeCaptureDemo.Types.FIX50SP2TC
+{
+	public static class CustOrderHandlingInstValues
+	{
+		public const string PhoneSimple = "A";
+		public const string PhoneComplex = "B";
+		public const string FcmProvidedScreen = "C";
+		public const string OtherProvidedScreen = "D";
+		public const string ClientProvidedPlatformControlledByFcm = "E";
+		public const string ClientProvidedPlatformDirectToExchange = "F";
+		public const string AlgoEngine = "H";
+		public const string PriceAtExecution = "J";
+		public const string DeskElectronic = "W";
+		public const string DeskPit = "X";
+		public const string ClientElectronic = "Y";
+		public const string ClientPit = "Z";
+		public const string AddOnOrder = "ADD";
+		public const string AllOrNone = "AON";
+		public const string ConditionalOrder = "CND";
+		public const string CashNotHeld = "CNH";
+		public const string DeliveryInstructionsCash = "CSH";
+		public const string DirectedOrder = "DIR";
+		public const string DiscretionaryLimitOrder = "DLO";
+		public const string ExchangeForPhysicalTransaction = "E.W";
+		public const string FillOrKill = "FOK";
+		public const string IntraDayCross = "IDX";
+		public const string ImbalanceOnly = "IO";
+		public const string ImmediateOrCancel = "IOC";
+		public const string IntermarketSweepOrder = "ISO";
+		public const string LimitOnOpen = "LOO";
+		public const string LimitOnClose = "LOC";
+		public const string MarketAtOpen = "MAO";
+		public const string MarketAtClose = "MAC";
+		public const string MarketOnOpen = "MOO";
+		public const string MarketOnClose = "MOC";
+		public const string MergerRelatedTransferPosition = "MPT";
+		public const string MinimumQuantity = "MQT";
+		public const string MarketToLimit = "MTL";
+		public const string DeliveryInstructionsNextDay = "ND";
+		public const string NotHeld = "NH";
+		public const string OptionsRelatedTransaction = "OPT";
+		public const string OverTheDay = "OVD";
+		public const string Pegged = "PEG";
+		public const string ReserveSizeOrder = "RSV";
+		public const string StopStockTransaction = "S.W";
+		public const string Scale = "SCL";
+		public const string DeliveryInstructionsSellersOption = "SLR";
+		public const string TimeOrder = "TMO";
+		public const string TrailingStop = "TS";
+		public const string Work = "WRK";
+		public const string StayOnOfferside = "F0";
+		public const string GoAlong = "F3";
+		public const string ParticipateDoNotInitiate = "F6";
+		public const string StrictScale = "F7";
+		public const string TryToScale = "F8";
+		public const string StayOnBidside = "F9";
+		public const string NoCross = "FA";
+		public const string OkToCross = "FB";
+		public const string CallFirst = "FC";
+		public const string PercentOfVolume = "FD";
+		public const string ReinstateOnSystemFailure = "FH";
+		public const string InstitutionOnly = "FI";
+		public const string ReinstateOnTradingHalt = "FJ";
+		public const string CancelOnTradingHalf = "FK";
+		public const string LastPeg = "FL";
+		public const string MidPricePeg = "FM";
+		public const string NonNegotiable = "FN";
+		public const string OpeningPeg = "FO";
+		public const string MarketPeg = "FP";
+		public const string CancelOnSystemFailure = "FQ";
+		public const string PrimaryPeg = "FR";
+		public const string Suspend = "FS";
+		public const string FixedPegToLocalBbo = "FT";
+		public const string PegToVwap = "FW";
+		public const string TradeAlong = "FX";
+		public const string TryToStop = "FY";
+		public const string CancelIfNotBest = "FZ";
+		public const string StrictLimit = "Fb";
+		public const string IgnorePriceValidityChecks = "Fc";
+		public const string PegToLimitPrice = "Fd";
+		public const string WorkToTargetStrategy = "Fe";
+		public const string GOrderAndFcmapIorFix = "G";
+	}
+}

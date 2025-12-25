@@ -1,0 +1,119 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using PureFix.Types;
+using TradeCaptureDemo.Types.FIX50SP2TC.Components;
+
+namespace TradeCaptureDemo.Types.FIX50SP2TC.Components
+{
+	public sealed partial class LegPaymentStreamPricingBusinessCenterGrp : IFixComponent
+	{
+		public sealed partial class NoLegPaymentStreamPricingBusinessCenters : IFixGroup
+		{
+			[TagDetails(Tag = 41562, Type = TagType.String, Offset = 0, Required = false)]
+			public string? LegPaymentStreamPricingBusinessCenter {get; set;}
+			
+			
+			bool IFixValidator.IsValid(in FixValidatorConfig config)
+			{
+				return true;
+			}
+			
+			void IFixEncoder.Encode(IFixWriter writer)
+			{
+				if (LegPaymentStreamPricingBusinessCenter is not null) writer.WriteString(41562, LegPaymentStreamPricingBusinessCenter);
+			}
+			
+			void IFixParser.Parse(IMessageView? view)
+			{
+				if (view is null) return;
+				
+				LegPaymentStreamPricingBusinessCenter = view.GetString(41562);
+			}
+			
+			bool IFixLookup.TryGetByTag(string name, out object? value)
+			{
+				value = null;
+				switch (name)
+				{
+					case "LegPaymentStreamPricingBusinessCenter":
+					{
+						value = LegPaymentStreamPricingBusinessCenter;
+						break;
+					}
+					default:
+					{
+						return false;
+					}
+				}
+				return true;
+			}
+			
+			void IFixReset.Reset()
+			{
+				LegPaymentStreamPricingBusinessCenter = null;
+			}
+		}
+		[Group(NoOfTag = 41561, Offset = 0, Required = false)]
+		public NoLegPaymentStreamPricingBusinessCenters[]? LegPaymentStreamPricingBusinessCenters {get; set;}
+		
+		
+		bool IFixValidator.IsValid(in FixValidatorConfig config)
+		{
+			return true;
+		}
+		
+		void IFixEncoder.Encode(IFixWriter writer)
+		{
+			if (LegPaymentStreamPricingBusinessCenters is not null && LegPaymentStreamPricingBusinessCenters.Length != 0)
+			{
+				writer.WriteWholeNumber(41561, LegPaymentStreamPricingBusinessCenters.Length);
+				for (int i = 0; i < LegPaymentStreamPricingBusinessCenters.Length; i++)
+				{
+					((IFixEncoder)LegPaymentStreamPricingBusinessCenters[i]).Encode(writer);
+				}
+			}
+		}
+		
+		void IFixParser.Parse(IMessageView? view)
+		{
+			if (view is null) return;
+			
+			if (view.GetView("NoLegPaymentStreamPricingBusinessCenters") is IMessageView viewNoLegPaymentStreamPricingBusinessCenters)
+			{
+				var count = viewNoLegPaymentStreamPricingBusinessCenters.GroupCount();
+				LegPaymentStreamPricingBusinessCenters = new NoLegPaymentStreamPricingBusinessCenters[count];
+				for (int i = 0; i < count; i++)
+				{
+					LegPaymentStreamPricingBusinessCenters[i] = new();
+					((IFixParser)LegPaymentStreamPricingBusinessCenters[i]).Parse(viewNoLegPaymentStreamPricingBusinessCenters.GetGroupInstance(i));
+				}
+			}
+		}
+		
+		bool IFixLookup.TryGetByTag(string name, out object? value)
+		{
+			value = null;
+			switch (name)
+			{
+				case "NoLegPaymentStreamPricingBusinessCenters":
+				{
+					value = LegPaymentStreamPricingBusinessCenters;
+					break;
+				}
+				default:
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+		
+		void IFixReset.Reset()
+		{
+			LegPaymentStreamPricingBusinessCenters = null;
+		}
+	}
+}

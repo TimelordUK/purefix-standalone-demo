@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "purefix.generator": {
+      "version": "0.1.2-alpha",
+      "commands": [
+        "purefix-gen"
+      ]
+    }
+  }
+}

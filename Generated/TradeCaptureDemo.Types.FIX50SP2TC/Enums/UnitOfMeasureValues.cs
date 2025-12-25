@@ -1,0 +1,88 @@
+using System;
+
+namespace TradeCaptureDemo.Types.FIX50SP2TC
+{
+	public static class UnitOfMeasureValues
+	{
+		public const string BillionCubicFeet = "Bcf";
+		public const string CubicMeters = "CBM";
+		public const string Gigajoules = "GJ";
+		public const string HeatRate = "kHR";
+		public const string KilowattHours = "kWh";
+		public const string MegaHeatRate = "MHR";
+		public const string OneMillionBtu = "MMBtu";
+		public const string MegawattHours = "MWh";
+		public const string Therms = "thm";
+		public const string TonsOfCarbonDioxide = "tnCO2";
+		public const string MillionBarrels = "MMbbl";
+		public const string Allowances = "Alw";
+		public const string Barrels = "Bbl";
+		public const string BoardFeet = "BDFT";
+		public const string Bushels = "Bu";
+		public const string Currency = "Ccy";
+		public const string CoolingDegreeDay = "CDD";
+		public const string CertifiedEmissionsReduction = "CER";
+		public const string CriticalPrecipDay = "CPD";
+		public const string ClimateReserveTonnes = "CRT";
+		public const string Hundredweight = "cwt";
+		public const string Day = "day";
+		public const string DryMetricTons = "dt";
+		public const string EnvAllwncCert = "EnvAllwnc";
+		public const string EnvironmentalCredit = "EnvCrd";
+		public const string EnvironmentalOffset = "EnvOfst";
+		public const string Grams = "g";
+		public const string Gallons = "Gal";
+		public const string GrossTons = "GT";
+		public const string HeatingDegreeDay = "HDD";
+		public const string IndexPoint = "IPNT";
+		public const string Kilograms = "kg";
+		public const string Kiloliters = "kL";
+		public const string KilowattYear = "kW-a";
+		public const string KilowattDay = "kW-d";
+		public const string KilowattHour = "kW-h";
+		public const string KilowattMonth = "kW-M";
+		public const string KilowattMinute = "kW-min";
+		public const string Liters = "L";
+		public const string Pounds = "lbs";
+		public const string MegawattYear = "MW-a";
+		public const string MegawattDay = "MW-d";
+		public const string MegawattHour = "MW-h";
+		public const string MegawattMonth = "MW-M";
+		public const string MegawattMinute = "MW-min";
+		public const string TroyOunces = "oz_tr";
+		public const string PrincipalWithRelationToDebtInstrument = "PRINC";
+		public const string MetricTons = "t";
+		public const string Tons = "tn";
+		public const string Are = "a";
+		public const string Acre = "ac";
+		public const string Centiliter = "cL";
+		public const string Centimeter = "cM";
+		public const string DieselGallonEquivalent = "DGE";
+		public const string Foot = "ft";
+		public const string GbGallon = "Gal_gb";
+		public const string GasolineGallonEquivalent = "GGE";
+		public const string Hectare = "ha";
+		public const string Inch = "in";
+		public const string Kilometer = "kM";
+		public const string Meter = "M";
+		public const string Mile = "mi";
+		public const string Milliliter = "mL";
+		public const string Millimeter = "mM";
+		public const string UsOunce = "oz";
+		public const string Piece = "pc";
+		public const string UsPint = "pt";
+		public const string GbPint = "pt_gb";
+		public const string UsQuart = "qt";
+		public const string GbQuart = "qt_gb";
+		public const string SquareCentimeter = "SqcM";
+		public const string SquareFoot = "Sqft";
+		public const string SquareInch = "Sqin";
+		public const string SquareKilometer = "SqkM";
+		public const string SquareMeter = "SqM";
+		public const string SquareMile = "Sqmi";
+		public const string SquareMillimeter = "SqmM";
+		public const string SquareYard = "Sqyd";
+		public const string Yard = "yd";
+		public const string UsDollars = "USD";
+	}
+}

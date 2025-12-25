@@ -1,0 +1,155 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using PureFix.Types;
+using TradeCaptureDemo.Types.FIX50SP2TC.Components;
+
+namespace TradeCaptureDemo.Types.FIX50SP2TC
+{
+	[MessageType("CB", FixVersion.FIX50SP2)]
+	public sealed partial class UserNotification : IFixMessage
+	{
+		[Component(Offset = 0, Required = true)]
+		public StandardHeader? StandardHeader {get; set;}
+		
+		[Component(Offset = 1, Required = false)]
+		public UsernameGrp? UsernameGrp {get; set;}
+		
+		[TagDetails(Tag = 926, Type = TagType.Int, Offset = 2, Required = true)]
+		public int? UserStatus {get; set;}
+		
+		[Component(Offset = 3, Required = false)]
+		public ThrottleParamsGrp? ThrottleParamsGrp {get; set;}
+		
+		[TagDetails(Tag = 58, Type = TagType.String, Offset = 4, Required = false)]
+		public string? Text {get; set;}
+		
+		[TagDetails(Tag = 354, Type = TagType.Length, Offset = 5, Required = false)]
+		public int? EncodedTextLen {get; set;}
+		
+		[TagDetails(Tag = 355, Type = TagType.RawData, Offset = 6, Required = false)]
+		public byte[]? EncodedText {get; set;}
+		
+		[Component(Offset = 7, Required = true)]
+		public StandardTrailer? StandardTrailer {get; set;}
+		
+		
+		IStandardHeader? IFixMessage.StandardHeader => StandardHeader;
+		
+		IStandardTrailer? IFixMessage.StandardTrailer => StandardTrailer;
+		
+		bool IFixValidator.IsValid(in FixValidatorConfig config)
+		{
+			return (!config.CheckStandardHeader || (StandardHeader is not null && ((IFixValidator)StandardHeader).IsValid(in config))) && (!config.CheckStandardTrailer || (StandardTrailer is not null && ((IFixValidator)StandardTrailer).IsValid(in config)));
+		}
+		
+		void IFixEncoder.Encode(IFixWriter writer)
+		{
+			if (StandardHeader is not null) ((IFixEncoder)StandardHeader).Encode(writer);
+			if (UsernameGrp is not null) ((IFixEncoder)UsernameGrp).Encode(writer);
+			if (UserStatus is not null) writer.WriteWholeNumber(926, UserStatus.Value);
+			if (ThrottleParamsGrp is not null) ((IFixEncoder)ThrottleParamsGrp).Encode(writer);
+			if (Text is not null) writer.WriteString(58, Text);
+			if (EncodedTextLen is not null) writer.WriteWholeNumber(354, EncodedTextLen.Value);
+			if (EncodedText is not null) writer.WriteBuffer(355, EncodedText);
+			if (StandardTrailer is not null) ((IFixEncoder)StandardTrailer).Encode(writer);
+		}
+		
+		void IFixParser.Parse(IMessageView? view)
+		{
+			if (view is null) return;
+			
+			if (view.GetView("StandardHeader") is IMessageView viewStandardHeader)
+			{
+				StandardHeader = new();
+				((IFixParser)StandardHeader).Parse(viewStandardHeader);
+			}
+			if (view.GetView("UsernameGrp") is IMessageView viewUsernameGrp)
+			{
+				UsernameGrp = new();
+				((IFixParser)UsernameGrp).Parse(viewUsernameGrp);
+			}
+			UserStatus = view.GetInt32(926);
+			if (view.GetView("ThrottleParamsGrp") is IMessageView viewThrottleParamsGrp)
+			{
+				ThrottleParamsGrp = new();
+				((IFixParser)ThrottleParamsGrp).Parse(viewThrottleParamsGrp);
+			}
+			Text = view.GetString(58);
+			EncodedTextLen = view.GetInt32(354);
+			EncodedText = view.GetByteArray(355);
+			if (view.GetView("StandardTrailer") is IMessageView viewStandardTrailer)
+			{
+				StandardTrailer = new();
+				((IFixParser)StandardTrailer).Parse(viewStandardTrailer);
+			}
+		}
+		
+		bool IFixLookup.TryGetByTag(string name, out object? value)
+		{
+			value = null;
+			switch (name)
+			{
+				case "StandardHeader":
+				{
+					value = StandardHeader;
+					break;
+				}
+				case "UsernameGrp":
+				{
+					value = UsernameGrp;
+					break;
+				}
+				case "UserStatus":
+				{
+					value = UserStatus;
+					break;
+				}
+				case "ThrottleParamsGrp":
+				{
+					value = ThrottleParamsGrp;
+					break;
+				}
+				case "Text":
+				{
+					value = Text;
+					break;
+				}
+				case "EncodedTextLen":
+				{
+					value = EncodedTextLen;
+					break;
+				}
+				case "EncodedText":
+				{
+					value = EncodedText;
+					break;
+				}
+				case "StandardTrailer":
+				{
+					value = StandardTrailer;
+					break;
+				}
+				default:
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+		
+		void IFixReset.Reset()
+		{
+			((IFixReset?)StandardHeader)?.Reset();
+			((IFixReset?)UsernameGrp)?.Reset();
+			UserStatus = null;
+			((IFixReset?)ThrottleParamsGrp)?.Reset();
+			Text = null;
+			EncodedTextLen = null;
+			EncodedText = null;
+			((IFixReset?)StandardTrailer)?.Reset();
+		}
+	}
+}

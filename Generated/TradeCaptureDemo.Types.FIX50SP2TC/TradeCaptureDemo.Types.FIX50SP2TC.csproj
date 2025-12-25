@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <RootNamespace>TradeCaptureDemo.Types.FIX50SP2TC</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="PureFix.Types.Core" Version="0.1.2-alpha" />
+    <PackageReference Include="PureFix.Types" Version="0.1.2-alpha" />
+  </ItemGroup>
+
+</Project>
