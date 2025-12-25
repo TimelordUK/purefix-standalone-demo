@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- PureFix packages from local feed -->
-    <PackageReference Include="PureFix.Transport" Version="0.1.0-alpha" />
+    <!-- PureFix packages from GitHub Packages -->
+    <PackageReference Include="PureFix.Transport" Version="0.1.1-alpha" />
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
