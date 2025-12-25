@@ -1,7 +1,7 @@
 using Arrow.Threading.Tasks;
 using PureFix.Transport.Session;
 using PureFix.Types;
-using PureFix.Types.FIX50SP2;
+using TradeCaptureDemo.Types.FIX50SP2TC;
 
 namespace TradeCaptureDemo.Support;
 

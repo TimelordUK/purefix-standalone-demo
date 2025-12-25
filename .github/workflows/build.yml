@@ -1,0 +1,61 @@
+name: Build and Run Demo
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+env:
+  DOTNET_VERSION: '9.0.x'
+  PUREFIX_VERSION: '0.1.0-alpha'
+
+jobs:
+  build:
+    name: Build and Run
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Configure NuGet for GitHub Packages
+      run: |
+        dotnet nuget add source "https://nuget.pkg.github.com/TimelordUK/index.json" \
+          --name github \
+          --username ${{ github.actor }} \
+          --password ${{ secrets.GITHUB_TOKEN }} \
+          --store-password-in-clear-text
+
+    - name: Install purefix-gen tool
+      run: dotnet tool install --global PureFix.Generator --version ${{ env.PUREFIX_VERSION }}
+
+    - name: Generate types from custom dictionary
+      run: |
+        purefix-gen -D Data/FIX50SP2-TC.xml -g -p ./Generated \
+          --nuget --pkg-version ${{ env.PUREFIX_VERSION }} \
+          --namespace TradeCaptureDemo.Types.FIX50SP2TC
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run demo (quick test)
+      run: |
+        timeout 10 dotnet run --configuration Release --no-build -- reset || exit_code=$?
+        # Exit code 124 means timeout (expected), anything else is a real error
+        if [ "${exit_code:-0}" -eq 124 ]; then
+          echo "Demo ran successfully (terminated by timeout as expected)"
+          exit 0
+        elif [ "${exit_code:-0}" -ne 0 ]; then
+          echo "Demo failed with exit code $exit_code"
+          exit $exit_code
+        fi

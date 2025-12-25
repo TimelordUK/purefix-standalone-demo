@@ -5,8 +5,8 @@ using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Core;
-using PureFix.Types.FIX50SP2;
-using PureFix.Types.FIX50SP2.Components;
+using TradeCaptureDemo.Types.FIX50SP2TC;
+using TradeCaptureDemo.Types.FIX50SP2TC.Components;
 using static PureFix.Transport.Session.TimerDispatcher;
 
 namespace TradeCaptureDemo.Support;

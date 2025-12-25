@@ -17,3 +17,6 @@ store/
 
 # Logs
 *.log
+
+# Generated types (regenerated from dictionary)
+Generated/

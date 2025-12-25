@@ -1,8 +1,8 @@
 using PureFix.Transport;
 using PureFix.Types;
 using PureFix.Types.Config;
-using PureFix.Types.FIX50SP2;
-using PureFix.Types.FIX50SP2.Components;
+using TradeCaptureDemo.Types.FIX50SP2TC;
+using TradeCaptureDemo.Types.FIX50SP2TC.Components;
 
 namespace TradeCaptureDemo.Support;
 

@@ -5,7 +5,7 @@ using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Core;
-using PureFix.Types.FIX50SP2;
+using TradeCaptureDemo.Types.FIX50SP2TC;
 
 namespace TradeCaptureDemo.Support;
 

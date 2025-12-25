@@ -10,7 +10,6 @@
   <ItemGroup>
     <!-- PureFix packages from local feed -->
     <PackageReference Include="PureFix.Transport" Version="0.1.0-alpha" />
-    <PackageReference Include="PureFix.Types.FIX50SP2" Version="0.1.0-alpha" />
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
@@ -28,6 +27,16 @@
     <None Update="Data\**\*">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Generated custom types from FIX50SP2-TC.xml -->
+    <ProjectReference Include="Generated/TradeCaptureDemo.Types.FIX50SP2TC/TradeCaptureDemo.Types.FIX50SP2TC.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exclude generated project source from main project compilation -->
+    <Compile Remove="Generated/**/*.cs" />
   </ItemGroup>
 
 </Project>
