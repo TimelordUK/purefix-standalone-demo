@@ -1,0 +1,48 @@
+{
+  "application": {
+    "type": "acceptor",
+    "name": "test_server",
+    "tcp": {
+      "host": "localhost",
+      "port": 2344,
+      "tls": {
+        "enabled": false,
+        "certificate": "local.pfx"
+      }
+    },
+    "protocol": "ascii",
+    "dictionary": "FIX50SP2.xml"
+  },
+  "logging": {
+    "minimumLevel": "Information",
+    "appLog": {
+      "console": true,
+      "file": {
+        "path": "logs/acceptor-app.log",
+        "rollingInterval": "Day",
+        "retainedFileCountLimit": 7
+      }
+    },
+    "fixLog": {
+      "console": false,
+      "file": {
+        "path": "logs/acceptor-fix.log",
+        "rollingInterval": "Day",
+        "retainedFileCountLimit": 7
+      }
+    }
+  },
+  "store": {
+    "type": "memory"
+  },
+  "Username": "js-server",
+  "Password": "pwd-server",
+  "EncryptMethod": 0,
+  "ResetSeqNumFlag": true,
+  "HeartBtInt": 30,
+  "SenderCompId": "accept-comp",
+  "TargetCompID": "init-comp",
+  "TargetSubID": "fix",
+  "DefaultApplVerID": "t2",
+  "BeginString": "FIX.5.0SP2"
+}
