@@ -7,7 +7,6 @@ using PureFix.Types;
 using PureFix.Types.Core;
 using TradeCaptureDemo.Types.FIX50SP2TC;
 using TradeCaptureDemo.Types.FIX50SP2TC.Components;
-using static PureFix.Transport.Session.TimerDispatcher;
 
 namespace TradeCaptureDemo.Support;
 
@@ -130,7 +129,7 @@ internal class DemoServer : BaseApp
         };
     }
 
-    protected override bool OnLogon(IMessageView view, string user, string password)
+    protected override bool OnLogon(IMessageView view, string? user, string? password)
     {
         m_logger.Info($"Client logging in: {user}");
         return true;

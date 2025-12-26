@@ -12,7 +12,7 @@ namespace TradeCaptureDemo.Support;
 internal class DemoClient : BaseApp
 {
     private readonly FixMessageFactory m_msg_factory = new();
-    private int _receivedCount = 0;
+    private int _receivedCount;
 
     public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, AsyncWorkQueue q, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, q, clock)

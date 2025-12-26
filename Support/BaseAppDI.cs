@@ -16,8 +16,7 @@ public abstract class BaseAppDI
 {
     public V? Resolve<V>()
     {
-        if (AppHost == null) return default;
-        return AppHost.Services.GetService<V>();
+        return AppHost == null ? default : AppHost.Services.GetService<V>();
     }
 
     protected IHost? AppHost { get; set; }
