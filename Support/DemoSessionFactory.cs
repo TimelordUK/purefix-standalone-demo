@@ -19,13 +19,10 @@ public class DemoSessionFactory(
 {
     public FixSession MakeSession()
     {
-        if (config.IsInitiator())
-        {
-            return new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock);
-        }
-        else
-        {
-            return new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock);
-        }
+        FixSession entity = config.IsInitiator() 
+            ? new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock)
+            : new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock);
+
+        return entity;
     }
 }
