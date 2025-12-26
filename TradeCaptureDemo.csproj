@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <!-- PureFix packages from nuget.org -->
-    <PackageReference Include="PureFix.Transport" Version="0.1.2-alpha" />
+    <PackageReference Include="PureFix.Transport" Version="0.1.4-alpha" />
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
@@ -31,7 +31,8 @@
 
   <ItemGroup>
     <!-- Generated custom types from FIX50SP2-TC.xml -->
-    <ProjectReference Include="Generated/TradeCaptureDemo.Types.FIX50SP2TC/TradeCaptureDemo.Types.FIX50SP2TC.csproj" />
+    <ProjectReference
+      Include="Generated/TradeCaptureDemo.Types.FIX50SP2TC/TradeCaptureDemo.Types.FIX50SP2TC.csproj" />
   </ItemGroup>
 
   <ItemGroup>
