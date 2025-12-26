@@ -51,17 +51,13 @@ public class ConsoleLogFactory : ILogFactory
         return new SerilogWrapper(_plainLogger.ForContext("Name", name));
     }
 
-    private class SerilogWrapper : PureFix.Types.ILogger
+    private class SerilogWrapper(Serilog.ILogger logger) : PureFix.Types.ILogger
     {
-        private readonly Serilog.ILogger _logger;
-
-        public SerilogWrapper(Serilog.ILogger logger) => _logger = logger;
-
-        public void Debug(string message) => _logger.Debug(message);
-        public void Error(string message) => _logger.Error(message);
-        public void Error(Exception ex) => _logger.Error(ex, ex.Message);
-        public void Error(Exception ex, string message) => _logger.Error(ex, message);
-        public void Info(string message) => _logger.Information(message);
-        public void Warn(string message) => _logger.Warning(message);
+        public void Debug(string message) => logger.Debug(message);
+        public void Error(string message) => logger.Error(message);
+        public void Error(Exception ex) => logger.Error(ex, ex.Message);
+        public void Error(Exception ex, string message) => logger.Error(ex, message);
+        public void Info(string message) => logger.Information(message);
+        public void Warn(string message) => logger.Warning(message);
     }
 }

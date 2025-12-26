@@ -5,10 +5,5 @@ using TradeCaptureDemo.Types.FIX50SP2TC;
 
 namespace TradeCaptureDemo.Support;
 
-internal class DemoHost : AppHost<DemoSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>
-{
-    public DemoHost(AsyncWorkQueue q, ILogFactory factory, IFixClock clock, IFixConfig config)
-        : base(q, factory, clock, config)
-    {
-    }
-}
+internal class DemoHost(AsyncWorkQueue q, ILogFactory factory, IFixClock clock, IFixConfig config)
+    : AppHost<DemoSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>(q, factory, clock, config);

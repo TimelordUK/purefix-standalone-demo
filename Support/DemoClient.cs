@@ -28,14 +28,14 @@ internal class DemoClient : BaseApp
                 {
                     var tc = (TradeCaptureReport)m_msg_factory.ToFixMessage(view)!;
                     _receivedCount++;
-                    m_logger.Info($"[{_receivedCount}] Received Trade: {tc?.Instrument?.Symbol} {tc?.LastQty} @ ${tc?.LastPx}");
+                    m_logger.Info($"[{_receivedCount}] Received Trade: {tc.Instrument?.Symbol} {tc.LastQty} @ ${tc.LastPx}");
                     break;
                 }
 
             case MsgType.TradeCaptureReportRequestAck:
                 {
                     var tca = (TradeCaptureReportRequestAck)m_msg_factory.ToFixMessage(view)!;
-                    m_logger.Info($"Trade request ack: {tca?.TradeRequestID} status={tca?.TradeRequestStatus}");
+                    m_logger.Info($"Trade request ack: {tca.TradeRequestID} status={tca.TradeRequestStatus}");
                     break;
                 }
         }
@@ -43,7 +43,7 @@ internal class DemoClient : BaseApp
         return Task.CompletedTask;
     }
 
-    protected override bool OnLogon(IMessageView view, string user, string password)
+    protected override bool OnLogon(IMessageView view, string? user, string? password)
     {
         m_logger.Info($"Server accepted logon for user: {user}");
         return true;
