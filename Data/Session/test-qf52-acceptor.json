@@ -2,6 +2,7 @@
   "application": {
     "type": "acceptor",
     "name": "test_server",
+    "logDelimiter": 124,
     "tcp": {
       "host": "localhost",
       "port": 2344,

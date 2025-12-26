@@ -3,6 +3,7 @@
     "reconnectSeconds": 10,
     "type": "initiator",
     "name": "test_client",
+    "logDelimiter": 124,
     "tcp": {
       "host": "localhost",
       "port": 2344,
