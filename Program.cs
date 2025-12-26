@@ -2,42 +2,100 @@ using Arrow.Threading.Tasks;
 using PureFix.Transport;
 using PureFix.Transport.Session;
 using PureFix.Transport.SocketTransport;
+using PureFix.Transport.Store;
 using PureFix.Types;
 using TradeCaptureDemo.Support;
 
 // Parse command line args
-var argsList = args.ToList();
-var enableLogs = argsList.Remove("--log") || argsList.Remove("-l");
-var mode = argsList.Count > 0 ? argsList[0].ToLower() : "reset";
+var enableLogs = false;
+var clientOnly = false;
+string? customConfig = null;
+string? storeDirectory = null;
+string mode = "reset";
+
+for (var i = 0; i < args.Length; i++)
+{
+    switch (args[i])
+    {
+        case "--log" or "-l":
+            enableLogs = true;
+            break;
+        case "--client" or "-c":
+            clientOnly = true;
+            if (i + 1 < args.Length && !args[i + 1].StartsWith("-"))
+            {
+                customConfig = args[++i];
+            }
+            break;
+        case "--store" or "-s":
+            if (i + 1 < args.Length && !args[i + 1].StartsWith("-"))
+            {
+                storeDirectory = args[++i];
+            }
+            break;
+        case "--help" or "-h" or "help":
+            mode = "help";
+            break;
+        case "reset" or "recovery" or "broker-reset" or "clear":
+            mode = args[i].ToLower();
+            break;
+        default:
+            // Unknown arg - if not starting with dash, treat as mode for backwards compat
+            if (!args[i].StartsWith("-"))
+            {
+                mode = args[i].ToLower();
+            }
+            break;
+    }
+}
 
 Console.WriteLine("PureFix Standalone Trade Capture Demo");
 Console.WriteLine("======================================");
-Console.WriteLine($"Mode: {mode}");
+if (clientOnly)
+{
+    Console.WriteLine("Mode: client");
+}
+else
+{
+    Console.WriteLine($"Mode: {mode}");
+}
 if (enableLogs) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
 Console.WriteLine();
 
-if (mode == "help" || mode == "-h" || mode == "--help")
+if (mode == "help")
 {
-    Console.WriteLine("Usage: dotnet run [mode] [options]");
+    Console.WriteLine("Usage:");
+    Console.WriteLine();
+    Console.WriteLine("  Local testing (runs both server and client):");
+    Console.WriteLine("    dotnet run [mode] [-l]");
+    Console.WriteLine();
+    Console.WriteLine("  Connect to broker (client only):");
+    Console.WriteLine("    dotnet run -- --client [config] [-s store] [-l]");
     Console.WriteLine();
     Console.WriteLine("Modes:");
-    Console.WriteLine("  reset        - Always reset sequence numbers (default)");
-    Console.WriteLine("  recovery     - Use file store, resume from last session");
-    Console.WriteLine("  broker-reset - Client sends N, broker responds Y (forces reset)");
-    Console.WriteLine("  clear        - Delete store files and exit");
+    Console.WriteLine("  reset          Memory store, always reset sequence numbers (default)");
+    Console.WriteLine("  recovery       File store, resume from last session");
+    Console.WriteLine("  broker-reset   Simulate broker forcing sequence reset");
+    Console.WriteLine("  clear          Delete local store files and exit");
     Console.WriteLine();
     Console.WriteLine("Options:");
-    Console.WriteLine("  --log, -l    - Enable file logging (writes to logs/ directory)");
+    Console.WriteLine("  -c, --client [config]   Run client only (connect to external broker)");
+    Console.WriteLine("  -s, --store <dir>       Use file store in <dir>");
+    Console.WriteLine("  -l, --log               Enable file logging (logs/ directory)");
+    Console.WriteLine("  -h, --help              Show this help");
     Console.WriteLine();
-    Console.WriteLine("Recovery test:");
-    Console.WriteLine("  1. dotnet run clear        # Start fresh");
-    Console.WriteLine("  2. dotnet run recovery     # Run, exchange messages, Ctrl+C");
-    Console.WriteLine("  3. dotnet run recovery     # Run again - should resume from stored seq nums");
+    Console.WriteLine("Examples:");
     Console.WriteLine();
-    Console.WriteLine("Broker reset test (simulates daily reset):");
-    Console.WriteLine("  1. dotnet run clear");
-    Console.WriteLine("  2. dotnet run broker-reset # Client sends N, broker forces Y");
-    Console.WriteLine("     Watch: Client should reset its store when broker responds Y");
+    Console.WriteLine("  # Local testing");
+    Console.WriteLine("  dotnet run                              # Server + client, memory store");
+    Console.WriteLine("  dotnet run recovery                     # Server + client, file store");
+    Console.WriteLine("  dotnet run -l                           # With logging enabled");
+    Console.WriteLine();
+    Console.WriteLine("  # Connect to broker");
+    Console.WriteLine("  dotnet run -- -c                        # Use default initiator config");
+    Console.WriteLine("  dotnet run -- -c mybroker.json          # Use custom config");
+    Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store   # With file persistence");
+    Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store -l");
     return;
 }
 
@@ -63,6 +121,57 @@ if (mode == "clear")
     return;
 }
 
+// Client-only mode - connect to external broker
+if (clientOnly)
+{
+    var configPath = customConfig ?? Path.Join(sessionRootPath, "test-qf52-initiator.json");
+
+    if (!File.Exists(configPath))
+    {
+        Console.WriteLine($"Error: Config file not found: {configPath}");
+        return;
+    }
+
+    // Load config to show session details
+    var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
+    var desc = config.Description;
+
+    Console.WriteLine("Client-only mode");
+    Console.WriteLine();
+    Console.WriteLine("Session Configuration:");
+    Console.WriteLine($"  Config file:    {configPath}");
+    Console.WriteLine($"  BeginString:    {desc?.BeginString}");
+    Console.WriteLine($"  SenderCompID:   {desc?.SenderCompID}");
+    Console.WriteLine($"  TargetCompID:   {desc?.TargetCompID}");
+    Console.WriteLine($"  Host:           {desc?.Application?.Tcp?.Host}:{desc?.Application?.Tcp?.Port}");
+    Console.WriteLine($"  TLS Enabled:    {desc?.Application?.Tcp?.Tls?.Enabled ?? false}");
+    if (desc?.Application?.Tcp?.Tls?.Enabled == true)
+    {
+        Console.WriteLine($"  TLS Cert:       {desc?.Application?.Tcp?.Tls?.Certificate}");
+        Console.WriteLine($"  TLS TargetHost: {desc?.Application?.Tcp?.Tls?.TargetHost ?? desc?.Application?.Tcp?.Host}");
+    }
+    Console.WriteLine();
+
+    Console.WriteLine("Starting FIX client (connecting to external broker)...");
+    if (storeDirectory != null)
+    {
+        Console.WriteLine($"Store:  {storeDirectory} (file store)");
+    }
+    else
+    {
+        var storeType = desc?.Store?.Type ?? "memory";
+        Console.WriteLine($"Store:  {storeType} (from config)");
+    }
+    Console.WriteLine();
+
+    await StartSession(configPath, dictRootPath, "Client", logDir, storeDirectory);
+
+    Console.WriteLine();
+    Console.WriteLine("Client session ended.");
+    return;
+}
+
+// Local testing mode - run both server and client
 // Select config files based on mode
 string acceptorConfig, initiatorConfig;
 if (mode == "recovery")
@@ -105,14 +214,20 @@ await Task.WhenAll(acceptorTask, initiatorTask);
 Console.WriteLine();
 Console.WriteLine("Demo complete!");
 
-static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir)
+static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir, string? storeDirectory = null)
 {
     Console.WriteLine($"Starting {name}...");
 
     // Load config
     var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
 
-    var storeType = config.Description?.Store?.Type ?? "memory";
+    // Override store if directory specified
+    if (!string.IsNullOrEmpty(storeDirectory) && config is FixConfig fixConfig)
+    {
+        fixConfig.SessionStoreFactory = new FileSessionStoreFactory(storeDirectory);
+    }
+
+    var storeType = storeDirectory != null ? "file" : (config.Description?.Store?.Type ?? "memory");
     var resetFlag = config.Description?.ResetSeqNumFlag ?? false;
     Console.WriteLine($"  {name}: {config.Description?.SenderCompID} -> {config.Description?.TargetCompID}");
     Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
