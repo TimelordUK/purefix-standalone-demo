@@ -13,13 +13,13 @@ public class ConsoleLogFactory : ILogFactory
     public ConsoleLogFactory(ISessionDescription? description = null, string? logDir = null)
     {
         var appConfig = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Debug()
             .Enrich.WithThreadId()
-            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message}{NewLine}{Exception}");
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}");
 
         var plainConfig = new LoggerConfiguration()
-            .MinimumLevel.Information()
-            .WriteTo.Console(outputTemplate: "{Message}{NewLine}");
+            .MinimumLevel.Debug()
+            .WriteTo.Console(outputTemplate: "{Message:lj}{NewLine}");
 
         if (logDir != null)
         {
@@ -29,12 +29,12 @@ public class ConsoleLogFactory : ILogFactory
             // App log file
             appConfig.WriteTo.File(
                 Path.Combine(logDir, $"app-{timestamp}.log"),
-                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message}{NewLine}{Exception}");
+                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}");
 
             // FIX message log file (plain)
             plainConfig.WriteTo.File(
                 Path.Combine(logDir, $"fix-{timestamp}.log"),
-                outputTemplate: "{Message}{NewLine}");
+                outputTemplate: "{Message:lj}{NewLine}");
         }
 
         _appLogger = appConfig.CreateLogger();
@@ -51,13 +51,38 @@ public class ConsoleLogFactory : ILogFactory
         return new SerilogWrapper(_plainLogger.ForContext("Name", name));
     }
 
-    private class SerilogWrapper(Serilog.ILogger logger) : PureFix.Types.ILogger
+    private sealed class SerilogWrapper(Serilog.ILogger logger) : PureFix.Types.ILogger
     {
+        public bool IsEnabled(LogLevel level) => logger.IsEnabled(ToSerilog(level));
+
         public void Debug(string message) => logger.Debug(message);
+        public void Debug<T>(string template, T arg) => logger.Debug(template, arg);
+        public void Debug<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Debug(template, arg1, arg2);
+        public void Debug<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Debug(template, arg1, arg2, arg3);
+
+        public void Info(string message) => logger.Information(message);
+        public void Info<T>(string template, T arg) => logger.Information(template, arg);
+        public void Info<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Information(template, arg1, arg2);
+        public void Info<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Information(template, arg1, arg2, arg3);
+
+        public void Warn(string message) => logger.Warning(message);
+        public void Warn<T>(string template, T arg) => logger.Warning(template, arg);
+        public void Warn<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Warning(template, arg1, arg2);
+        public void Warn<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Warning(template, arg1, arg2, arg3);
+
         public void Error(string message) => logger.Error(message);
         public void Error(Exception ex) => logger.Error(ex, ex.Message);
-        public void Error(Exception ex, string message) => logger.Error(ex, message);
-        public void Info(string message) => logger.Information(message);
-        public void Warn(string message) => logger.Warning(message);
+        public void Error(Exception ex, string? message = null) => logger.Error(ex, message ?? ex.Message);
+        public void Error<T>(Exception ex, string template, T arg) => logger.Error(ex, template, arg);
+        public void Error<T1, T2>(Exception ex, string template, T1 arg1, T2 arg2) => logger.Error(ex, template, arg1, arg2);
+
+        private static LogEventLevel ToSerilog(LogLevel level) => level switch
+        {
+            LogLevel.Debug => LogEventLevel.Debug,
+            LogLevel.Info => LogEventLevel.Information,
+            LogLevel.Warn => LogEventLevel.Warning,
+            LogLevel.Error => LogEventLevel.Error,
+            _ => LogEventLevel.Information
+        };
     }
 }

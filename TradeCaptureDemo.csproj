@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <!-- PureFix packages from nuget.org -->
-    <PackageReference Include="PureFix.Transport" Version="0.1.4-alpha" />
+    <PackageReference Include="PureFix.Transport" Version="0.1.5-alpha" />
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
