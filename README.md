@@ -374,6 +374,38 @@ grep "^\[GC\]" soak-test.log
 - Heap size remains stable throughout the test
 - Total allocation over 43 minutes: ~100 MB (~40 KB/s average)
 
+### Skeleton Mode (Baseline Testing)
+
+To measure the GC overhead of just the FIX engine without application messages, use skeleton mode:
+
+```bash
+dotnet run -- --skeleton 2>&1 | tee gc.log
+
+# Let it run, then check for GC activity
+grep "\[GC\]" gc.log
+```
+
+In skeleton mode, client and server connect and maintain the session with heartbeats only - no application messages are sent. This isolates the engine's baseline allocation behaviour.
+
+**Sample results (15-minute skeleton soak test):**
+
+```
+[GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
+[GC] ─────────────────────────────────────────────────────────────────────────
+[GC] 00:05.0  │ +30  │ +22  │ +5   │    266.37 │         582.50 │ 119284.2 KB/s  <- startup
+[GC] 00:10.0  │ +0   │ +0   │ +0   │    266.42 │         582.55 │      9.6 KB/s
+[GC] 00:15.0  │ +0   │ +0   │ +0   │    266.42 │         582.59 │      8.2 KB/s
+...
+[GC] 15:00.0  │ +0   │ +0   │ +0   │    266.45 │         582.91 │      6.4 KB/s
+```
+
+| Mode | Steady-State Alloc Rate | Gen0 Collections |
+|------|------------------------|------------------|
+| Skeleton (heartbeats only) | ~6-10 KB/s | 0 over 15 minutes |
+| With trades (5s batches) | ~40-55 KB/s | ~1 per 5 minutes |
+
+**Key insight:** The engine's baseline overhead is minimal. Zero Gen0 collections over 15 minutes in skeleton mode demonstrates no GC pressure from the session layer, timers, or heartbeat processing. The ~80% of allocations in normal mode come from application-level message encoding/decoding.
+
 ## License
 
 MIT

@@ -10,6 +10,7 @@ using TradeCaptureDemo.Support;
 // Parse command line args
 var enableLogs = false;
 var clientOnly = false;
+var skeletonMode = false;
 string? customConfig = null;
 string? storeDirectory = null;
 string mode = "reset";
@@ -34,6 +35,9 @@ for (var i = 0; i < args.Length; i++)
                 storeDirectory = args[++i];
             }
             break;
+        case "--skeleton":
+            skeletonMode = true;
+            break;
         case "--help" or "-h" or "help":
             mode = "help";
             break;
@@ -55,6 +59,10 @@ Console.WriteLine("======================================");
 if (clientOnly)
 {
     Console.WriteLine("Mode: client");
+}
+else if (skeletonMode)
+{
+    Console.WriteLine("Mode: skeleton (heartbeat-only soak test)");
 }
 else
 {
@@ -83,6 +91,7 @@ if (mode == "help")
     Console.WriteLine("  -c, --client [config]   Run client only (connect to external broker)");
     Console.WriteLine("  -s, --store <dir>       Use file store in <dir>");
     Console.WriteLine("  -l, --log               Enable file logging (logs/ directory)");
+    Console.WriteLine("  --skeleton              Skeleton mode - no app messages, only heartbeats");
     Console.WriteLine("  -h, --help              Show this help");
     Console.WriteLine();
     Console.WriteLine("Examples:");
@@ -97,6 +106,9 @@ if (mode == "help")
     Console.WriteLine("  dotnet run -- -c mybroker.json          # Use custom config");
     Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store   # With file persistence");
     Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store -l");
+    Console.WriteLine();
+    Console.WriteLine("  # GC baseline testing");
+    Console.WriteLine("  dotnet run -- --skeleton                # Heartbeat-only, measure GC overhead");
     return;
 }
 
@@ -180,7 +192,15 @@ var gcMonitorTask = gcMonitor.Start(gcMonitorCts.Token);
 // Local testing mode - run both server and client
 // Select config files based on mode
 string acceptorConfig, initiatorConfig;
-if (mode == "recovery")
+if (skeletonMode)
+{
+    // Skeleton mode uses default configs with memory store
+    acceptorConfig = Path.Join(sessionRootPath, "test-qf52-acceptor.json");
+    initiatorConfig = Path.Join(sessionRootPath, "test-qf52-initiator.json");
+    Console.WriteLine("SKELETON MODE: No application messages, only session heartbeats");
+    Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+}
+else if (mode == "recovery")
 {
     acceptorConfig = Path.Join(sessionRootPath, "recovery-acceptor.json");
     initiatorConfig = Path.Join(sessionRootPath, "recovery-initiator.json");
@@ -206,13 +226,13 @@ else
 Console.WriteLine();
 
 // Start the acceptor (server) first
-var acceptorTask = StartSession(acceptorConfig, dictRootPath, "Server", logDir);
+var acceptorTask = StartSession(acceptorConfig, dictRootPath, "Server", logDir, skeleton: skeletonMode);
 
 // Wait a bit for the server to start listening
 await Task.Delay(500);
 
 // Start the initiator (client)
-var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client", logDir);
+var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client", logDir, skeleton: skeletonMode);
 
 // Wait for both to complete
 await Task.WhenAll(acceptorTask, initiatorTask);
@@ -225,9 +245,9 @@ gcMonitor.PrintSummary();
 Console.WriteLine();
 Console.WriteLine("Demo complete!");
 
-static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir, string? storeDirectory = null)
+static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir, string? storeDirectory = null, bool skeleton = false)
 {
-    Console.WriteLine($"Starting {name}...");
+    Console.WriteLine($"Starting {name}{(skeleton ? " (skeleton)" : "")}...");
 
     // Load config
     var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
@@ -248,8 +268,10 @@ static async Task StartSession(string configPath, string dictRootPath, string na
     var queue = new AsyncWorkQueue();
     var clock = new RealtimeClock();
 
-    // Create the DI host
-    var host = new DemoHost(queue, logFactory, clock, config);
+    // Create the DI host - use SkeletonHost for baseline GC testing
+    BaseAppDI host = skeleton
+        ? new SkeletonHost(queue, logFactory, clock, config)
+        : new DemoHost(queue, logFactory, clock, config);
 
     // Get the TCP entity and run
     var entity = host.Resolve<ITcpEntity>();
