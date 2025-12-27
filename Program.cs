@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Arrow.Threading.Tasks;
 using PureFix.Transport;
 using PureFix.Transport.Session;
@@ -171,6 +172,11 @@ if (clientOnly)
     return;
 }
 
+// Start GC monitor
+var gcMonitor = new GcMonitor();
+var gcMonitorCts = new CancellationTokenSource();
+var gcMonitorTask = gcMonitor.Start(gcMonitorCts.Token);
+
 // Local testing mode - run both server and client
 // Select config files based on mode
 string acceptorConfig, initiatorConfig;
@@ -211,6 +217,11 @@ var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client", logDir
 // Wait for both to complete
 await Task.WhenAll(acceptorTask, initiatorTask);
 
+// Stop GC monitor and print final stats
+gcMonitorCts.Cancel();
+try { await gcMonitorTask; } catch (OperationCanceledException) { }
+gcMonitor.PrintSummary();
+
 Console.WriteLine();
 Console.WriteLine("Demo complete!");
 
@@ -246,5 +257,95 @@ static async Task StartSession(string configPath, string dictRootPath, string na
     {
         var cts = new CancellationTokenSource();
         await entity.Start(cts.Token);
+    }
+}
+
+// GC Monitoring - use a class to hold state since top-level can't have static fields
+class GcMonitor
+{
+    public int LastGen0, LastGen1, LastGen2;
+    public long LastAllocatedBytes;
+    public Stopwatch Stopwatch = Stopwatch.StartNew();
+
+    public async Task Start(CancellationToken ct)
+    {
+        // Capture initial state
+        LastGen0 = GC.CollectionCount(0);
+        LastGen1 = GC.CollectionCount(1);
+        LastGen2 = GC.CollectionCount(2);
+        LastAllocatedBytes = GC.GetTotalAllocatedBytes();
+
+        Console.WriteLine();
+        Console.WriteLine("[GC] Monitor started (reporting every 5 seconds)");
+        Console.WriteLine("[GC] ─────────────────────────────────────────────────────────────────────────");
+        Console.WriteLine("[GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate");
+        Console.WriteLine("[GC] ─────────────────────────────────────────────────────────────────────────");
+
+        while (!ct.IsCancellationRequested)
+        {
+            try
+            {
+                await Task.Delay(5000, ct);
+                PrintStats();
+            }
+            catch (OperationCanceledException)
+            {
+                break;
+            }
+        }
+    }
+
+    public void PrintStats()
+    {
+        var gen0 = GC.CollectionCount(0);
+        var gen1 = GC.CollectionCount(1);
+        var gen2 = GC.CollectionCount(2);
+        var heapBytes = GC.GetTotalMemory(false);
+        var allocatedBytes = GC.GetTotalAllocatedBytes();
+
+        var deltaGen0 = gen0 - LastGen0;
+        var deltaGen1 = gen1 - LastGen1;
+        var deltaGen2 = gen2 - LastGen2;
+        var deltaAllocated = allocatedBytes - LastAllocatedBytes;
+
+        var elapsed = Stopwatch.Elapsed;
+        var heapMB = heapBytes / (1024.0 * 1024.0);
+        var allocatedMB = allocatedBytes / (1024.0 * 1024.0);
+        var allocRateKBps = deltaAllocated / 5.0 / 1024.0; // KB/s over 5 second interval
+
+        Console.WriteLine($"[GC] {elapsed:mm\\:ss\\.f}  │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
+
+        LastGen0 = gen0;
+        LastGen1 = gen1;
+        LastGen2 = gen2;
+        LastAllocatedBytes = allocatedBytes;
+    }
+
+    public void PrintSummary()
+    {
+        var elapsed = Stopwatch.Elapsed;
+        var gen0 = GC.CollectionCount(0);
+        var gen1 = GC.CollectionCount(1);
+        var gen2 = GC.CollectionCount(2);
+        var heapBytes = GC.GetTotalMemory(false);
+        var allocatedBytes = GC.GetTotalAllocatedBytes();
+
+        Console.WriteLine();
+        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
+        Console.WriteLine("[GC] Summary");
+        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
+        Console.WriteLine($"[GC]   Runtime:            {elapsed:mm\\:ss\\.fff}");
+        Console.WriteLine($"[GC]   Total Collections:  Gen0={gen0}, Gen1={gen1}, Gen2={gen2}");
+        Console.WriteLine($"[GC]   Final Heap Size:    {heapBytes / (1024.0 * 1024.0):F2} MB");
+        Console.WriteLine($"[GC]   Total Allocated:    {allocatedBytes / (1024.0 * 1024.0):F2} MB");
+        Console.WriteLine($"[GC]   Avg Alloc Rate:     {allocatedBytes / elapsed.TotalSeconds / 1024.0:F1} KB/s");
+
+        // GC memory info for more details
+        var gcInfo = GC.GetGCMemoryInfo();
+        Console.WriteLine($"[GC]   High Memory Load:   {gcInfo.HighMemoryLoadThresholdBytes / (1024.0 * 1024.0):F0} MB threshold");
+        Console.WriteLine($"[GC]   Heap Size (Commit): {gcInfo.HeapSizeBytes / (1024.0 * 1024.0):F2} MB");
+        Console.WriteLine($"[GC]   Fragmented Bytes:   {gcInfo.FragmentedBytes / 1024.0:F1} KB");
+        Console.WriteLine($"[GC]   Pinned Objects:     {gcInfo.PinnedObjectsCount}");
+        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
     }
 }

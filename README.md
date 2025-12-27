@@ -330,6 +330,50 @@ The generator detects when the dictionary is newer than generated code and regen
 | `PureFix.Types.Core` | Base interfaces (`IFixMessage`, `IFixParser`, etc.) |
 | `PureFix.Types` | Standard FIX types and utilities |
 
+## GC Performance
+
+The demo includes built-in GC monitoring to observe allocation behaviour. While PureFix is not designed as a zero-allocation engine, it aims to be efficient and avoid wasteful allocations.
+
+### Running a Soak Test
+
+```bash
+dotnet run --configuration Release 2>&1 | tee soak-test.log
+
+# Extract GC stats
+grep "^\[GC\]" soak-test.log
+```
+
+### Sample Results (43-minute soak test)
+
+```
+[GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
+[GC] ─────────────────────────────────────────────────────────────────────────
+[GC] 00:05.0  │ +39  │ +22  │ +5   │    276.87 │         583.05 │ 119392.6 KB/s  <- startup
+[GC] 00:10.0  │ +0   │ +0   │ +0   │    277.09 │         583.27 │     44.3 KB/s
+[GC] 00:15.0  │ +0   │ +0   │ +0   │    277.37 │         583.56 │     58.5 KB/s
+...
+[GC] 01:15.0  │ +1   │ +0   │ +0   │    272.66 │         586.01 │     54.0 KB/s  <- Gen0 collection
+...
+[GC] 42:46.1  │ +0   │ +0   │ +0   │    280.80 │         685.58 │     55.4 KB/s
+```
+
+### Summary
+
+| Metric | Startup | Steady State |
+|--------|---------|--------------|
+| Gen0 collections | 39 | ~1 per 5 minutes |
+| Gen1 collections | 22 | ~1 per 35 minutes |
+| Gen2 collections | 5 | 0 |
+| Allocation rate | 119 MB/s (JIT, DI, init) | ~40 KB/s |
+| Heap size | - | Stable ~275-280 MB |
+
+**Key observations:**
+- Startup burst is expected (.NET runtime, DI container, JIT compilation)
+- Steady-state shows minimal GC pressure with infrequent Gen0 collections
+- No Gen2 collections during operation indicates no memory leaks
+- Heap size remains stable throughout the test
+- Total allocation over 43 minutes: ~100 MB (~40 KB/s average)
+
 ## License
 
 MIT
