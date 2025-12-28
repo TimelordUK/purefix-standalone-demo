@@ -406,6 +406,99 @@ In skeleton mode, client and server connect and maintain the session with heartb
 
 **Key insight:** The engine's baseline overhead is minimal. Zero Gen0 collections over 15 minutes in skeleton mode demonstrates no GC pressure from the session layer, timers, or heartbeat processing. The ~80% of allocations in normal mode come from application-level message encoding/decoding.
 
+### Isolated Client/Server Testing
+
+To measure GC overhead of just the client (initiator) or server (acceptor) independently, use the `--client` or `--server` flags. This is useful for testing against an external broker or isolating which side contributes to GC pressure.
+
+```bash
+# Run only the server (acceptor) - listens for connections
+dotnet run -- --server
+
+# Run only the client (initiator) - connects to server
+dotnet run -- --client
+
+# Skeleton mode variants for baseline GC testing
+dotnet run -- --skeleton --server   # Server with heartbeats only
+dotnet run -- --skeleton --client   # Client with heartbeats only
+
+# Connect to an external broker with custom config
+dotnet run -- --client --config /path/to/broker-config.json
+```
+
+**Sample results (client-only skeleton mode):**
+
+```
+[GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
+[GC] ─────────────────────────────────────────────────────────────────────────
+[GC] 00:05.0  │ +14  │ +10  │ +1   │    380.26 │         872.13 │  59640.9 KB/s  <- startup
+[GC] 00:10.0  │ +0   │ +0   │ +0   │    380.28 │         872.16 │      4.8 KB/s
+[GC] 00:15.0  │ +0   │ +0   │ +0   │    380.31 │         872.18 │      4.7 KB/s
+[GC] 00:20.0  │ +0   │ +0   │ +0   │    380.34 │         872.20 │      4.8 KB/s
+```
+
+This allows you to:
+- Test your client against a real external FIX broker
+- Isolate GC overhead to client vs server
+- Run server in one terminal, client in another for debugging
+- Use different configs for each side
+
+### Reconnection Testing
+
+The FIX engine supports automatic reconnection when the connection is lost. The client (initiator) will retry connecting at intervals defined by `reconnectSeconds` in the config (default 10 seconds).
+
+**Test scenario 1: Server restart**
+
+```bash
+# Terminal 1 - Start server
+dotnet run -- --skeleton --server
+
+# Terminal 2 - Start client (connects successfully)
+dotnet run -- --skeleton --client
+
+# Kill server (Ctrl+C in Terminal 1)
+# Client detects disconnect and starts retry loop:
+#   [INF] Reader received TransportDead signal, stopping session.
+#   [INF] session has ended.
+#   [INF] waiting 10s before reconnection attempt
+#   [INF] attempting to connect attempt 1
+#   [ERR] Connection refused
+#   [INF] waiting 10s for reconnection attempt
+#   ... retries every 10 seconds ...
+
+# Restart server (Terminal 1)
+dotnet run -- --skeleton --server
+
+# Client reconnects automatically:
+#   [INF] reconnected to endpoint, reusing session.
+#   [INF] PrepareForReconnect: resetting session state
+#   [INF] Session ready - running in heartbeat-only mode
+```
+
+**Test scenario 2: Client starts before server**
+
+```bash
+# Terminal 1 - Start client first (no server running)
+dotnet run -- --skeleton --client
+# Client retries in a loop:
+#   [INF] attempting to connect attempt 1
+#   [ERR] Connection refused
+#   [INF] waiting 10s for reconnection attempt
+#   ...
+
+# Terminal 2 - Start server
+dotnet run -- --skeleton --server
+
+# Client connects on next attempt:
+#   [INF] connected to endpoint, creating session.
+#   [INF] Session ready
+```
+
+**Key behaviours:**
+- Same session instance is reused across reconnects (app state preserved)
+- Sequence numbers are preserved when using file store with `ResetSeqNumFlag=false`
+- With `ResetSeqNumFlag=true` (default for skeleton mode), sequences reset on each logon
+- Reconnect interval is configurable via `reconnectSeconds` in session config
+
 ## License
 
 MIT

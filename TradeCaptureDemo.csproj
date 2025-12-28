@@ -8,8 +8,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- PureFix packages from nuget.org -->
-    <PackageReference Include="PureFix.Transport" Version="0.1.5-alpha" />
+    <!--
+      PureFix packages from NuGet (default for release/testing)
+      To develop against local cspurefix changes:
+        1. Comment out the PackageReference below
+        2. Uncomment the ProjectReference
+        3. Run: dotnet build
+    -->
+    <PackageReference Include="PureFix.Transport" Version="0.1.6-alpha" />
+    <!-- <ProjectReference Include="../cspurefix/PureFix.Transport/PureFix.Transport.csproj" /> -->
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
@@ -20,6 +27,7 @@
     <!-- DI for app hosting -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.10" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.10" />
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,8 +39,7 @@
 
   <ItemGroup>
     <!-- Generated custom types from FIX50SP2-TC.xml -->
-    <ProjectReference
-      Include="Generated/TradeCaptureDemo.Types.FIX50SP2TC/TradeCaptureDemo.Types.FIX50SP2TC.csproj" />
+    <ProjectReference Include="Generated/TradeCaptureDemo.Types.FIX50SP2TC/TradeCaptureDemo.Types.FIX50SP2TC.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,3 +1,4 @@
+using System.CommandLine;
 using System.Diagnostics;
 using Arrow.Threading.Tasks;
 using PureFix.Transport;
@@ -7,119 +8,276 @@ using PureFix.Transport.Store;
 using PureFix.Types;
 using TradeCaptureDemo.Support;
 
-// Parse command line args
-var enableLogs = false;
-var clientOnly = false;
-var skeletonMode = false;
-string? customConfig = null;
-string? storeDirectory = null;
-string mode = "reset";
+// ─────────────────────────────────────────────────────────────────────────────
+// CLI Setup
+// ─────────────────────────────────────────────────────────────────────────────
+var modeArg = new Argument<string>("mode", () => "reset", "Operating mode: reset, recovery, broker-reset, clear");
+var clientOption = new Option<bool>(["--client", "-c"], "Run client (initiator) only");
+var serverOption = new Option<bool>(["--server", "-S"], "Run server (acceptor) only");
+var skeletonOption = new Option<bool>("--skeleton", "Skeleton mode - no app messages, only heartbeats (for GC baseline testing)");
+var logOption = new Option<bool>(["--log", "-l"], "Enable file logging to logs/ directory");
+var storeOption = new Option<string?>(["--store", "-s"], "Use file store in specified directory");
+var configOption = new Option<string?>("--config", "Custom config file path (for --client or --server)");
 
-for (var i = 0; i < args.Length; i++)
+var rootCommand = new RootCommand("PureFix Standalone Trade Capture Demo - FIX engine demonstration with GC monitoring")
 {
-    switch (args[i])
+    modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption
+};
+
+rootCommand.SetHandler(async (string mode, bool client, bool server, bool skeleton, bool log, string? store, string? config) =>
+{
+    var options = new RunOptions(mode, client, server, skeleton, log, store, config);
+    await Run(options);
+}, modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption);
+
+return await rootCommand.InvokeAsync(args);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Entry Point
+// ─────────────────────────────────────────────────────────────────────────────
+async Task Run(RunOptions opt)
+{
+    PrintBanner(opt);
+
+    // Validate flags
+    if (opt.ClientOnly && opt.ServerOnly)
     {
-        case "--log" or "-l":
-            enableLogs = true;
-            break;
-        case "--client" or "-c":
-            clientOnly = true;
-            if (i + 1 < args.Length && !args[i + 1].StartsWith("-"))
-            {
-                customConfig = args[++i];
-            }
-            break;
-        case "--store" or "-s":
-            if (i + 1 < args.Length && !args[i + 1].StartsWith("-"))
-            {
-                storeDirectory = args[++i];
-            }
-            break;
-        case "--skeleton":
-            skeletonMode = true;
-            break;
-        case "--help" or "-h" or "help":
-            mode = "help";
-            break;
-        case "reset" or "recovery" or "broker-reset" or "clear":
-            mode = args[i].ToLower();
-            break;
-        default:
-            // Unknown arg - if not starting with dash, treat as mode for backwards compat
-            if (!args[i].StartsWith("-"))
-            {
-                mode = args[i].ToLower();
-            }
-            break;
+        Console.WriteLine("Error: cannot specify both --client and --server");
+        return;
+    }
+
+    var paths = new PathConfig();
+
+    // Handle clear mode
+    if (opt.Mode == "clear")
+    {
+        ClearStore(paths.StoreDir);
+        return;
+    }
+
+    // Select config files
+    var (acceptorConfig, initiatorConfig) = SelectConfigs(opt, paths);
+
+    // Apply custom config override
+    if (!string.IsNullOrEmpty(opt.CustomConfig))
+    {
+        if (!File.Exists(opt.CustomConfig))
+        {
+            Console.WriteLine($"Error: Config file not found: {opt.CustomConfig}");
+            return;
+        }
+        if (opt.ClientOnly) initiatorConfig = opt.CustomConfig;
+        if (opt.ServerOnly) acceptorConfig = opt.CustomConfig;
+    }
+
+    // Dispatch to appropriate runner
+    if (opt.ClientOnly)
+        await RunClient(initiatorConfig, paths, opt);
+    else if (opt.ServerOnly)
+        await RunServer(acceptorConfig, paths, opt);
+    else
+        await RunBoth(acceptorConfig, initiatorConfig, paths, opt);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Run Modes
+// ─────────────────────────────────────────────────────────────────────────────
+async Task RunClient(string configPath, PathConfig paths, RunOptions opt)
+{
+    PrintSessionInfo(configPath, paths.DictRootPath, "Client", isAcceptor: false);
+    PrintStoreInfo(opt.StoreDirectory, configPath, paths.DictRootPath);
+
+    await WithGcMonitoring(async () =>
+    {
+        await StartSession(configPath, paths, "Client", opt);
+    });
+
+    Console.WriteLine("\nClient session ended.");
+}
+
+async Task RunServer(string configPath, PathConfig paths, RunOptions opt)
+{
+    PrintSessionInfo(configPath, paths.DictRootPath, "Server", isAcceptor: true);
+    PrintStoreInfo(opt.StoreDirectory, configPath, paths.DictRootPath);
+
+    await WithGcMonitoring(async () =>
+    {
+        await StartSession(configPath, paths, "Server", opt);
+    });
+
+    Console.WriteLine("\nServer session ended.");
+}
+
+async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig paths, RunOptions opt)
+{
+    PrintModeInfo(opt, paths.StoreDir);
+
+    await WithGcMonitoring(async () =>
+    {
+        // Start server first
+        var serverTask = StartSession(acceptorConfig, paths, "Server", opt);
+        await Task.Delay(500); // Let server start listening
+
+        // Then start client
+        var clientTask = StartSession(initiatorConfig, paths, "Client", opt);
+
+        await Task.WhenAll(serverTask, clientTask);
+    });
+
+    Console.WriteLine("\nDemo complete!");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Session Management
+// ─────────────────────────────────────────────────────────────────────────────
+async Task StartSession(string configPath, PathConfig paths, string name, RunOptions opt)
+{
+    Console.WriteLine($"Starting {name}{(opt.Skeleton ? " (skeleton)" : "")}...");
+
+    var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
+
+    // Override store if directory specified
+    if (!string.IsNullOrEmpty(opt.StoreDirectory) && config is FixConfig fixConfig)
+    {
+        fixConfig.SessionStoreFactory = new FileSessionStoreFactory(opt.StoreDirectory);
+    }
+
+    var storeType = opt.StoreDirectory != null ? "file" : (config.Description?.Store?.Type ?? "memory");
+    var resetFlag = config.Description?.ResetSeqNumFlag ?? false;
+    Console.WriteLine($"  {name}: {config.Description?.SenderCompID} -> {config.Description?.TargetCompID}");
+    Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
+
+    var logFactory = new ConsoleLogFactory(config.Description, opt.LogDir);
+    var queue = new AsyncWorkQueue();
+    var clock = new RealtimeClock();
+
+    BaseAppDI host = opt.Skeleton
+        ? new SkeletonHost(queue, logFactory, clock, config)
+        : new DemoHost(queue, logFactory, clock, config);
+
+    var entity = host.Resolve<ITcpEntity>();
+    if (entity != null)
+    {
+        var cts = new CancellationTokenSource();
+        await entity.Start(cts.Token);
     }
 }
 
-Console.WriteLine("PureFix Standalone Trade Capture Demo");
-Console.WriteLine("======================================");
-if (clientOnly)
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper Methods
+// ─────────────────────────────────────────────────────────────────────────────
+void PrintBanner(RunOptions opt)
 {
-    Console.WriteLine("Mode: client");
-}
-else if (skeletonMode)
-{
-    Console.WriteLine("Mode: skeleton (heartbeat-only soak test)");
-}
-else
-{
-    Console.WriteLine($"Mode: {mode}");
-}
-if (enableLogs) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
-Console.WriteLine();
+    Console.WriteLine("PureFix Standalone Trade Capture Demo");
+    Console.WriteLine("======================================");
 
-if (mode == "help")
-{
-    Console.WriteLine("Usage:");
+    var runMode = (opt.ClientOnly, opt.ServerOnly, opt.Skeleton) switch
+    {
+        (true, false, true) => "skeleton client",
+        (false, true, true) => "skeleton server",
+        (false, false, true) => "skeleton (both)",
+        (true, false, false) => "client",
+        (false, true, false) => "server",
+        _ => opt.Mode
+    };
+
+    Console.WriteLine($"Mode: {runMode}");
+    if (opt.EnableLogs) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
     Console.WriteLine();
-    Console.WriteLine("  Local testing (runs both server and client):");
-    Console.WriteLine("    dotnet run [mode] [-l]");
-    Console.WriteLine();
-    Console.WriteLine("  Connect to broker (client only):");
-    Console.WriteLine("    dotnet run -- --client [config] [-s store] [-l]");
-    Console.WriteLine();
-    Console.WriteLine("Modes:");
-    Console.WriteLine("  reset          Memory store, always reset sequence numbers (default)");
-    Console.WriteLine("  recovery       File store, resume from last session");
-    Console.WriteLine("  broker-reset   Simulate broker forcing sequence reset");
-    Console.WriteLine("  clear          Delete local store files and exit");
-    Console.WriteLine();
-    Console.WriteLine("Options:");
-    Console.WriteLine("  -c, --client [config]   Run client only (connect to external broker)");
-    Console.WriteLine("  -s, --store <dir>       Use file store in <dir>");
-    Console.WriteLine("  -l, --log               Enable file logging (logs/ directory)");
-    Console.WriteLine("  --skeleton              Skeleton mode - no app messages, only heartbeats");
-    Console.WriteLine("  -h, --help              Show this help");
-    Console.WriteLine();
-    Console.WriteLine("Examples:");
-    Console.WriteLine();
-    Console.WriteLine("  # Local testing");
-    Console.WriteLine("  dotnet run                              # Server + client, memory store");
-    Console.WriteLine("  dotnet run recovery                     # Server + client, file store");
-    Console.WriteLine("  dotnet run -l                           # With logging enabled");
-    Console.WriteLine();
-    Console.WriteLine("  # Connect to broker");
-    Console.WriteLine("  dotnet run -- -c                        # Use default initiator config");
-    Console.WriteLine("  dotnet run -- -c mybroker.json          # Use custom config");
-    Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store   # With file persistence");
-    Console.WriteLine("  dotnet run -- -c mybroker.json -s ./store -l");
-    Console.WriteLine();
-    Console.WriteLine("  # GC baseline testing");
-    Console.WriteLine("  dotnet run -- --skeleton                # Heartbeat-only, measure GC overhead");
-    return;
 }
 
-// Paths
-var baseDir = AppContext.BaseDirectory;
-var dictRootPath = Path.Join(baseDir, "Data");
-var sessionRootPath = Path.Join(dictRootPath, "Session");
-var storeDir = Path.Join(baseDir, "store");
-var logDir = enableLogs ? Path.Join(baseDir, "logs") : null;
+void PrintSessionInfo(string configPath, string dictRootPath, string role, bool isAcceptor)
+{
+    var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
+    var desc = config.Description;
 
-if (mode == "clear")
+    Console.WriteLine($"{role}-only mode");
+    Console.WriteLine();
+    Console.WriteLine("Session Configuration:");
+    Console.WriteLine($"  Config file:    {configPath}");
+    Console.WriteLine($"  BeginString:    {desc?.BeginString}");
+    Console.WriteLine($"  SenderCompID:   {desc?.SenderCompID}");
+    Console.WriteLine($"  TargetCompID:   {desc?.TargetCompID}");
+
+    if (isAcceptor)
+    {
+        Console.WriteLine($"  Listen:         {desc?.Application?.Tcp?.Host}:{desc?.Application?.Tcp?.Port}");
+    }
+    else
+    {
+        Console.WriteLine($"  Host:           {desc?.Application?.Tcp?.Host}:{desc?.Application?.Tcp?.Port}");
+        Console.WriteLine($"  TLS Enabled:    {desc?.Application?.Tcp?.Tls?.Enabled ?? false}");
+        if (desc?.Application?.Tcp?.Tls?.Enabled == true)
+        {
+            Console.WriteLine($"  TLS Cert:       {desc?.Application?.Tcp?.Tls?.Certificate}");
+            Console.WriteLine($"  TLS TargetHost: {desc?.Application?.Tcp?.Tls?.TargetHost ?? desc?.Application?.Tcp?.Host}");
+        }
+    }
+    Console.WriteLine();
+}
+
+void PrintStoreInfo(string? storeDirectory, string configPath, string dictRootPath)
+{
+    if (storeDirectory != null)
+    {
+        Console.WriteLine($"Store:  {storeDirectory} (file store)");
+    }
+    else
+    {
+        var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
+        var storeType = config.Description?.Store?.Type ?? "memory";
+        Console.WriteLine($"Store:  {storeType} (from config)");
+    }
+    Console.WriteLine();
+}
+
+void PrintModeInfo(RunOptions opt, string storeDir)
+{
+    if (opt.Skeleton)
+    {
+        Console.WriteLine("SKELETON MODE: No application messages, only session heartbeats");
+        Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+    }
+    else if (opt.Mode == "recovery")
+    {
+        Console.WriteLine("Using FILE store with ResetSeqNumFlag=false (both sides)");
+        Console.WriteLine($"Store directory: {storeDir}");
+    }
+    else if (opt.Mode == "broker-reset")
+    {
+        Console.WriteLine("Broker reset simulation:");
+        Console.WriteLine("  Client: FILE store, ResetSeqNumFlag=N");
+        Console.WriteLine("  Server: FILE store, ResetSeqNumFlag=Y (forces client reset)");
+        Console.WriteLine($"Store directory: {storeDir}");
+    }
+    else
+    {
+        Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+    }
+    Console.WriteLine();
+}
+
+(string acceptor, string initiator) SelectConfigs(RunOptions opt, PathConfig paths)
+{
+    var sessionPath = paths.SessionRootPath;
+
+    return (opt.Skeleton || opt.Mode == "reset") switch
+    {
+        true => (Path.Join(sessionPath, "test-qf52-acceptor.json"),
+                 Path.Join(sessionPath, "test-qf52-initiator.json")),
+        false => opt.Mode switch
+        {
+            "recovery" => (Path.Join(sessionPath, "recovery-acceptor.json"),
+                          Path.Join(sessionPath, "recovery-initiator.json")),
+            "broker-reset" => (Path.Join(sessionPath, "broker-reset-acceptor.json"),
+                              Path.Join(sessionPath, "broker-reset-initiator.json")),
+            _ => (Path.Join(sessionPath, "test-qf52-acceptor.json"),
+                  Path.Join(sessionPath, "test-qf52-initiator.json"))
+        }
+    };
+}
+
+void ClearStore(string storeDir)
 {
     Console.WriteLine("Clearing store directory...");
     if (Directory.Exists(storeDir))
@@ -131,171 +289,56 @@ if (mode == "clear")
     {
         Console.WriteLine("Store directory doesn't exist.");
     }
-    return;
 }
 
-// Client-only mode - connect to external broker
-if (clientOnly)
+async Task WithGcMonitoring(Func<Task> action)
 {
-    var configPath = customConfig ?? Path.Join(sessionRootPath, "test-qf52-initiator.json");
+    var monitor = new GcMonitor();
+    var cts = new CancellationTokenSource();
+    var monitorTask = monitor.Start(cts.Token);
 
-    if (!File.Exists(configPath))
-    {
-        Console.WriteLine($"Error: Config file not found: {configPath}");
-        return;
-    }
+    await action();
 
-    // Load config to show session details
-    var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
-    var desc = config.Description;
-
-    Console.WriteLine("Client-only mode");
-    Console.WriteLine();
-    Console.WriteLine("Session Configuration:");
-    Console.WriteLine($"  Config file:    {configPath}");
-    Console.WriteLine($"  BeginString:    {desc?.BeginString}");
-    Console.WriteLine($"  SenderCompID:   {desc?.SenderCompID}");
-    Console.WriteLine($"  TargetCompID:   {desc?.TargetCompID}");
-    Console.WriteLine($"  Host:           {desc?.Application?.Tcp?.Host}:{desc?.Application?.Tcp?.Port}");
-    Console.WriteLine($"  TLS Enabled:    {desc?.Application?.Tcp?.Tls?.Enabled ?? false}");
-    if (desc?.Application?.Tcp?.Tls?.Enabled == true)
-    {
-        Console.WriteLine($"  TLS Cert:       {desc?.Application?.Tcp?.Tls?.Certificate}");
-        Console.WriteLine($"  TLS TargetHost: {desc?.Application?.Tcp?.Tls?.TargetHost ?? desc?.Application?.Tcp?.Host}");
-    }
-    Console.WriteLine();
-
-    Console.WriteLine("Starting FIX client (connecting to external broker)...");
-    if (storeDirectory != null)
-    {
-        Console.WriteLine($"Store:  {storeDirectory} (file store)");
-    }
-    else
-    {
-        var storeType = desc?.Store?.Type ?? "memory";
-        Console.WriteLine($"Store:  {storeType} (from config)");
-    }
-    Console.WriteLine();
-
-    await StartSession(configPath, dictRootPath, "Client", logDir, storeDirectory);
-
-    Console.WriteLine();
-    Console.WriteLine("Client session ended.");
-    return;
+    cts.Cancel();
+    try { await monitorTask; } catch (OperationCanceledException) { }
+    monitor.PrintSummary();
 }
 
-// Start GC monitor
-var gcMonitor = new GcMonitor();
-var gcMonitorCts = new CancellationTokenSource();
-var gcMonitorTask = gcMonitor.Start(gcMonitorCts.Token);
-
-// Local testing mode - run both server and client
-// Select config files based on mode
-string acceptorConfig, initiatorConfig;
-if (skeletonMode)
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+record RunOptions(
+    string Mode,
+    bool ClientOnly,
+    bool ServerOnly,
+    bool Skeleton,
+    bool EnableLogs,
+    string? StoreDirectory,
+    string? CustomConfig)
 {
-    // Skeleton mode uses default configs with memory store
-    acceptorConfig = Path.Join(sessionRootPath, "test-qf52-acceptor.json");
-    initiatorConfig = Path.Join(sessionRootPath, "test-qf52-initiator.json");
-    Console.WriteLine("SKELETON MODE: No application messages, only session heartbeats");
-    Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+    public string? LogDir => EnableLogs ? Path.Join(AppContext.BaseDirectory, "logs") : null;
 }
-else if (mode == "recovery")
+
+class PathConfig
 {
-    acceptorConfig = Path.Join(sessionRootPath, "recovery-acceptor.json");
-    initiatorConfig = Path.Join(sessionRootPath, "recovery-initiator.json");
-    Console.WriteLine("Using FILE store with ResetSeqNumFlag=false (both sides)");
-    Console.WriteLine($"Store directory: {storeDir}");
-}
-else if (mode == "broker-reset")
-{
-    acceptorConfig = Path.Join(sessionRootPath, "broker-reset-acceptor.json");
-    initiatorConfig = Path.Join(sessionRootPath, "broker-reset-initiator.json");
-    Console.WriteLine("Broker reset simulation:");
-    Console.WriteLine("  Client: FILE store, ResetSeqNumFlag=N");
-    Console.WriteLine("  Server: FILE store, ResetSeqNumFlag=Y (forces client reset)");
-    Console.WriteLine($"Store directory: {storeDir}");
-}
-else
-{
-    acceptorConfig = Path.Join(sessionRootPath, "test-qf52-acceptor.json");
-    initiatorConfig = Path.Join(sessionRootPath, "test-qf52-initiator.json");
-    Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+    public string BaseDir { get; } = AppContext.BaseDirectory;
+    public string DictRootPath => Path.Join(BaseDir, "Data");
+    public string SessionRootPath => Path.Join(DictRootPath, "Session");
+    public string StoreDir => Path.Join(BaseDir, "store");
 }
 
-Console.WriteLine();
-
-// Start the acceptor (server) first
-var acceptorTask = StartSession(acceptorConfig, dictRootPath, "Server", logDir, skeleton: skeletonMode);
-
-// Wait a bit for the server to start listening
-await Task.Delay(500);
-
-// Start the initiator (client)
-var initiatorTask = StartSession(initiatorConfig, dictRootPath, "Client", logDir, skeleton: skeletonMode);
-
-// Wait for both to complete
-await Task.WhenAll(acceptorTask, initiatorTask);
-
-// Stop GC monitor and print final stats
-gcMonitorCts.Cancel();
-try { await gcMonitorTask; } catch (OperationCanceledException) { }
-gcMonitor.PrintSummary();
-
-Console.WriteLine();
-Console.WriteLine("Demo complete!");
-
-static async Task StartSession(string configPath, string dictRootPath, string name, string? logDir, string? storeDirectory = null, bool skeleton = false)
-{
-    Console.WriteLine($"Starting {name}{(skeleton ? " (skeleton)" : "")}...");
-
-    // Load config
-    var config = FixConfig.MakeConfigFromPaths(dictRootPath, configPath);
-
-    // Override store if directory specified
-    if (!string.IsNullOrEmpty(storeDirectory) && config is FixConfig fixConfig)
-    {
-        fixConfig.SessionStoreFactory = new FileSessionStoreFactory(storeDirectory);
-    }
-
-    var storeType = storeDirectory != null ? "file" : (config.Description?.Store?.Type ?? "memory");
-    var resetFlag = config.Description?.ResetSeqNumFlag ?? false;
-    Console.WriteLine($"  {name}: {config.Description?.SenderCompID} -> {config.Description?.TargetCompID}");
-    Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
-
-    // Create log factory from config
-    var logFactory = new ConsoleLogFactory(config.Description, logDir);
-    var queue = new AsyncWorkQueue();
-    var clock = new RealtimeClock();
-
-    // Create the DI host - use SkeletonHost for baseline GC testing
-    BaseAppDI host = skeleton
-        ? new SkeletonHost(queue, logFactory, clock, config)
-        : new DemoHost(queue, logFactory, clock, config);
-
-    // Get the TCP entity and run
-    var entity = host.Resolve<ITcpEntity>();
-    if (entity != null)
-    {
-        var cts = new CancellationTokenSource();
-        await entity.Start(cts.Token);
-    }
-}
-
-// GC Monitoring - use a class to hold state since top-level can't have static fields
 class GcMonitor
 {
-    public int LastGen0, LastGen1, LastGen2;
-    public long LastAllocatedBytes;
-    public Stopwatch Stopwatch = Stopwatch.StartNew();
+    private int _lastGen0, _lastGen1, _lastGen2;
+    private long _lastAllocatedBytes;
+    private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
 
     public async Task Start(CancellationToken ct)
     {
-        // Capture initial state
-        LastGen0 = GC.CollectionCount(0);
-        LastGen1 = GC.CollectionCount(1);
-        LastGen2 = GC.CollectionCount(2);
-        LastAllocatedBytes = GC.GetTotalAllocatedBytes();
+        _lastGen0 = GC.CollectionCount(0);
+        _lastGen1 = GC.CollectionCount(1);
+        _lastGen2 = GC.CollectionCount(2);
+        _lastAllocatedBytes = GC.GetTotalAllocatedBytes();
 
         Console.WriteLine();
         Console.WriteLine("[GC] Monitor started (reporting every 5 seconds)");
@@ -317,7 +360,7 @@ class GcMonitor
         }
     }
 
-    public void PrintStats()
+    private void PrintStats()
     {
         var gen0 = GC.CollectionCount(0);
         var gen1 = GC.CollectionCount(1);
@@ -325,27 +368,27 @@ class GcMonitor
         var heapBytes = GC.GetTotalMemory(false);
         var allocatedBytes = GC.GetTotalAllocatedBytes();
 
-        var deltaGen0 = gen0 - LastGen0;
-        var deltaGen1 = gen1 - LastGen1;
-        var deltaGen2 = gen2 - LastGen2;
-        var deltaAllocated = allocatedBytes - LastAllocatedBytes;
+        var deltaGen0 = gen0 - _lastGen0;
+        var deltaGen1 = gen1 - _lastGen1;
+        var deltaGen2 = gen2 - _lastGen2;
+        var deltaAllocated = allocatedBytes - _lastAllocatedBytes;
 
-        var elapsed = Stopwatch.Elapsed;
+        var elapsed = _stopwatch.Elapsed;
         var heapMB = heapBytes / (1024.0 * 1024.0);
         var allocatedMB = allocatedBytes / (1024.0 * 1024.0);
-        var allocRateKBps = deltaAllocated / 5.0 / 1024.0; // KB/s over 5 second interval
+        var allocRateKBps = deltaAllocated / 5.0 / 1024.0;
 
         Console.WriteLine($"[GC] {elapsed:mm\\:ss\\.f}  │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
 
-        LastGen0 = gen0;
-        LastGen1 = gen1;
-        LastGen2 = gen2;
-        LastAllocatedBytes = allocatedBytes;
+        _lastGen0 = gen0;
+        _lastGen1 = gen1;
+        _lastGen2 = gen2;
+        _lastAllocatedBytes = allocatedBytes;
     }
 
     public void PrintSummary()
     {
-        var elapsed = Stopwatch.Elapsed;
+        var elapsed = _stopwatch.Elapsed;
         var gen0 = GC.CollectionCount(0);
         var gen1 = GC.CollectionCount(1);
         var gen2 = GC.CollectionCount(2);
@@ -362,7 +405,6 @@ class GcMonitor
         Console.WriteLine($"[GC]   Total Allocated:    {allocatedBytes / (1024.0 * 1024.0):F2} MB");
         Console.WriteLine($"[GC]   Avg Alloc Rate:     {allocatedBytes / elapsed.TotalSeconds / 1024.0:F1} KB/s");
 
-        // GC memory info for more details
         var gcInfo = GC.GetGCMemoryInfo();
         Console.WriteLine($"[GC]   High Memory Load:   {gcInfo.HighMemoryLoadThresholdBytes / (1024.0 * 1024.0):F0} MB threshold");
         Console.WriteLine($"[GC]   Heap Size (Commit): {gcInfo.HeapSizeBytes / (1024.0 * 1024.0):F2} MB");
