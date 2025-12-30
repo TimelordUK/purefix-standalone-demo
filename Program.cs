@@ -19,17 +19,31 @@ var skeletonOption = new Option<bool>("--skeleton", "Skeleton mode - no app mess
 var logOption = new Option<bool>(["--log", "-l"], "Enable file logging to logs/ directory");
 var storeOption = new Option<string?>(["--store", "-s"], "Use file store in specified directory");
 var configOption = new Option<string?>("--config", "Custom config file path (for --client or --server)");
+var dryRunOption = new Option<bool>("--dry-run", "Read and display file store state, then exit without starting session");
+var truncateSeqOption = new Option<int?>("--truncate-seq", "Truncate sender sequence number to specified value (use with --client and --store)");
+var timeoutOption = new Option<int?>(["--timeout", "-t"], "Exit after specified number of seconds");
 
 var rootCommand = new RootCommand("PureFix Standalone Trade Capture Demo - FIX engine demonstration with GC monitoring")
 {
-    modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption
+    modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption, dryRunOption, truncateSeqOption, timeoutOption
 };
 
-rootCommand.SetHandler(async (string mode, bool client, bool server, bool skeleton, bool log, string? store, string? config) =>
+rootCommand.SetHandler(async (context) =>
 {
-    var options = new RunOptions(mode, client, server, skeleton, log, store, config);
+    var mode = context.ParseResult.GetValueForArgument(modeArg);
+    var client = context.ParseResult.GetValueForOption(clientOption);
+    var server = context.ParseResult.GetValueForOption(serverOption);
+    var skeleton = context.ParseResult.GetValueForOption(skeletonOption);
+    var log = context.ParseResult.GetValueForOption(logOption);
+    var store = context.ParseResult.GetValueForOption(storeOption);
+    var config = context.ParseResult.GetValueForOption(configOption);
+    var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
+    var truncateSeq = context.ParseResult.GetValueForOption(truncateSeqOption);
+    var timeout = context.ParseResult.GetValueForOption(timeoutOption);
+
+    var options = new RunOptions(mode, client, server, skeleton, log, store, config, dryRun, truncateSeq, timeout);
     await Run(options);
-}, modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption);
+});
 
 return await rootCommand.InvokeAsync(args);
 
@@ -69,6 +83,35 @@ async Task Run(RunOptions opt)
         }
         if (opt.ClientOnly) initiatorConfig = opt.CustomConfig;
         if (opt.ServerOnly) acceptorConfig = opt.CustomConfig;
+    }
+
+    // Handle truncate-seq (must be with --client and --store)
+    if (opt.TruncateSeq.HasValue)
+    {
+        if (!opt.ClientOnly)
+        {
+            Console.WriteLine("Error: --truncate-seq requires --client");
+            return;
+        }
+        if (string.IsNullOrEmpty(opt.StoreDirectory))
+        {
+            Console.WriteLine("Error: --truncate-seq requires --store");
+            return;
+        }
+        await TruncateSenderSeq(initiatorConfig, paths, opt);
+        if (!opt.DryRun) return; // Exit after truncation unless dry-run follows
+    }
+
+    // Handle dry-run (display store state and exit)
+    if (opt.DryRun)
+    {
+        if (string.IsNullOrEmpty(opt.StoreDirectory))
+        {
+            Console.WriteLine("Error: --dry-run requires --store");
+            return;
+        }
+        await DisplayStoreState(opt.ClientOnly ? initiatorConfig : acceptorConfig, paths, opt);
+        return;
     }
 
     // Dispatch to appropriate runner
@@ -147,6 +190,8 @@ async Task StartSession(string configPath, PathConfig paths, string name, RunOpt
     var resetFlag = config.Description?.ResetSeqNumFlag ?? false;
     Console.WriteLine($"  {name}: {config.Description?.SenderCompID} -> {config.Description?.TargetCompID}");
     Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
+    Console.WriteLine($"  SessionStoreFactory: {config.SessionStoreFactory?.GetType().Name ?? "null"}");
+    Console.WriteLine($"  Store config dir: {config.Description?.Store?.Directory ?? "null"}");
 
     var logFactory = new ConsoleLogFactory(config.Description, opt.LogDir);
     var queue = new AsyncWorkQueue();
@@ -160,7 +205,22 @@ async Task StartSession(string configPath, PathConfig paths, string name, RunOpt
     if (entity != null)
     {
         var cts = new CancellationTokenSource();
-        await entity.Start(cts.Token);
+
+        // Set timeout if specified
+        if (opt.TimeoutSecs.HasValue)
+        {
+            cts.CancelAfter(TimeSpan.FromSeconds(opt.TimeoutSecs.Value));
+            Console.WriteLine($"  Timeout: {opt.TimeoutSecs.Value} seconds");
+        }
+
+        try
+        {
+            await entity.Start(cts.Token);
+        }
+        catch (OperationCanceledException)
+        {
+            Console.WriteLine($"\n{name} timed out after {opt.TimeoutSecs} seconds.");
+        }
     }
 }
 
@@ -292,6 +352,114 @@ void ClearStore(string storeDir)
     }
 }
 
+async Task DisplayStoreState(string configPath, PathConfig paths, RunOptions opt)
+{
+    var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
+    var desc = config.Description;
+
+    if (desc == null)
+    {
+        Console.WriteLine("Error: Could not load config description");
+        return;
+    }
+
+    var sessionId = new SessionId(
+        desc.BeginString ?? "FIX.5.0SP2",
+        desc.SenderCompID ?? "unknown",
+        desc.TargetCompID ?? "unknown"
+    );
+
+    Console.WriteLine("╔════════════════════════════════════════════════════════════════════════════╗");
+    Console.WriteLine("║                           FILE STORE STATE                                 ║");
+    Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════╣");
+    Console.WriteLine($"║  Store Directory:  {opt.StoreDirectory,-54} ║");
+    Console.WriteLine($"║  Session ID:       {sessionId,-54} ║");
+    Console.WriteLine("╟────────────────────────────────────────────────────────────────────────────╢");
+
+    var storeFactory = new FileSessionStoreFactory(opt.StoreDirectory!);
+    var store = storeFactory.Create(sessionId);
+
+    try
+    {
+        await store.Initialize();
+
+        Console.WriteLine($"║  Sender Seq Num:   {store.SenderSeqNum,-54} ║");
+        Console.WriteLine($"║  Target Seq Num:   {store.TargetSeqNum,-54} ║");
+        Console.WriteLine($"║  Creation Time:    {store.CreationTime,-54} ║");
+        Console.WriteLine("╟────────────────────────────────────────────────────────────────────────────╢");
+
+        // Check the actual files
+        var senderFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.sender.seqnum");
+        var targetFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.target.seqnum");
+        var messagesFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.messages");
+
+        Console.WriteLine($"║  Sender seq file:  {(File.Exists(senderFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Target seq file:  {(File.Exists(targetFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Messages file:    {(File.Exists(messagesFile) ? "exists" : "missing"),-54} ║");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"║  Error loading store: {ex.Message,-51} ║");
+        Console.WriteLine($"║  (Store may not exist yet - run a session first)                          ║");
+    }
+
+    Console.WriteLine("╚════════════════════════════════════════════════════════════════════════════╝");
+}
+
+async Task TruncateSenderSeq(string configPath, PathConfig paths, RunOptions opt)
+{
+    var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
+    var desc = config.Description;
+
+    if (desc == null)
+    {
+        Console.WriteLine("Error: Could not load config description");
+        return;
+    }
+
+    var sessionId = new SessionId(
+        desc.BeginString ?? "FIX.5.0SP2",
+        desc.SenderCompID ?? "unknown",
+        desc.TargetCompID ?? "unknown"
+    );
+
+    var storeFactory = new FileSessionStoreFactory(opt.StoreDirectory!);
+    var store = storeFactory.Create(sessionId);
+
+    try
+    {
+        await store.Initialize();
+        var oldSeq = store.SenderSeqNum;
+        var newSeq = opt.TruncateSeq!.Value;
+
+        Console.WriteLine("╔════════════════════════════════════════════════════════════════════════════╗");
+        Console.WriteLine("║                      TRUNCATING SENDER SEQUENCE                            ║");
+        Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════╣");
+        Console.WriteLine($"║  Session ID:       {sessionId,-54} ║");
+        Console.WriteLine($"║  Old Sender Seq:   {oldSeq,-54} ║");
+        Console.WriteLine($"║  New Sender Seq:   {newSeq,-54} ║");
+        Console.WriteLine("╟────────────────────────────────────────────────────────────────────────────╢");
+
+        if (newSeq >= oldSeq)
+        {
+            Console.WriteLine($"║  WARNING: New sequence ({newSeq}) >= old sequence ({oldSeq})                    ║");
+            Console.WriteLine($"║  No change made - truncate should reduce the sequence number.             ║");
+        }
+        else
+        {
+            await store.SetSenderSeqNum(newSeq);
+            Console.WriteLine($"║  SUCCESS: Sender sequence truncated from {oldSeq} to {newSeq,-26} ║");
+            Console.WriteLine($"║  Server will reject logon until client catches up.                       ║");
+        }
+
+        Console.WriteLine("╚════════════════════════════════════════════════════════════════════════════╝");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"Error truncating sequence: {ex.Message}");
+    }
+}
+
 async Task WithGcMonitoring(Func<Task> action, string? logDir)
 {
     var monitor = new GcMonitor(logDir);
@@ -315,7 +483,10 @@ record RunOptions(
     bool Skeleton,
     bool EnableLogs,
     string? StoreDirectory,
-    string? CustomConfig)
+    string? CustomConfig,
+    bool DryRun,
+    int? TruncateSeq,
+    int? TimeoutSecs)
 {
     public string? LogDir => EnableLogs ? Path.Join(AppContext.BaseDirectory, "logs") : null;
 }
