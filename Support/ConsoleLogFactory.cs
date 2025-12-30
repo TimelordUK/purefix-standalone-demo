@@ -27,17 +27,22 @@ public class ConsoleLogFactory : ILogFactory
         if (logDir != null)
         {
             Directory.CreateDirectory(logDir);
-            var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
 
             // App log file - includes app name for easy identification
+            // Rolls to new file at midnight with date suffix (e.g., app-20251230.log)
             appConfig.WriteTo.File(
-                Path.Combine(logDir, $"{appName}-app-{timestamp}.log"),
-                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}");
+                Path.Combine(logDir, $"{appName}-app-.log"),
+                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: null);
 
             // FIX message log file (plain) - includes app name
+            // Rolls to new file at midnight with date suffix
             plainConfig.WriteTo.File(
-                Path.Combine(logDir, $"{appName}-fix-{timestamp}.log"),
-                outputTemplate: "{Message:lj}{NewLine}");
+                Path.Combine(logDir, $"{appName}-fix-.log"),
+                outputTemplate: "{Message:lj}{NewLine}",
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: null);
         }
 
         _appLogger = appConfig.CreateLogger();
