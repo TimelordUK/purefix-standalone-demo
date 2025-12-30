@@ -6,6 +6,7 @@ using PureFix.Transport.Session;
 using PureFix.Transport.SocketTransport;
 using PureFix.Transport.Store;
 using PureFix.Types;
+using Serilog;
 using TradeCaptureDemo.Support;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -90,7 +91,7 @@ async Task RunClient(string configPath, PathConfig paths, RunOptions opt)
     await WithGcMonitoring(async () =>
     {
         await StartSession(configPath, paths, "Client", opt);
-    });
+    }, opt.LogDir);
 
     Console.WriteLine("\nClient session ended.");
 }
@@ -103,7 +104,7 @@ async Task RunServer(string configPath, PathConfig paths, RunOptions opt)
     await WithGcMonitoring(async () =>
     {
         await StartSession(configPath, paths, "Server", opt);
-    });
+    }, opt.LogDir);
 
     Console.WriteLine("\nServer session ended.");
 }
@@ -122,7 +123,7 @@ async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig pat
         var clientTask = StartSession(initiatorConfig, paths, "Client", opt);
 
         await Task.WhenAll(serverTask, clientTask);
-    });
+    }, opt.LogDir);
 
     Console.WriteLine("\nDemo complete!");
 }
@@ -291,9 +292,9 @@ void ClearStore(string storeDir)
     }
 }
 
-async Task WithGcMonitoring(Func<Task> action)
+async Task WithGcMonitoring(Func<Task> action, string? logDir)
 {
-    var monitor = new GcMonitor();
+    var monitor = new GcMonitor(logDir);
     var cts = new CancellationTokenSource();
     var monitorTask = monitor.Start(cts.Token);
 
@@ -332,6 +333,22 @@ class GcMonitor
     private int _lastGen0, _lastGen1, _lastGen2;
     private long _lastAllocatedBytes;
     private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+    private readonly Serilog.ILogger? _fileLogger;
+
+    public GcMonitor(string? logDir = null)
+    {
+        if (logDir != null)
+        {
+            Directory.CreateDirectory(logDir);
+            _fileLogger = new LoggerConfiguration()
+                .WriteTo.File(
+                    Path.Combine(logDir, "gc-monitor-.log"),
+                    outputTemplate: "{Message:lj}{NewLine}",
+                    rollingInterval: RollingInterval.Day,
+                    retainedFileCountLimit: null)
+                .CreateLogger();
+        }
+    }
 
     public async Task Start(CancellationToken ct)
     {
@@ -340,11 +357,11 @@ class GcMonitor
         _lastGen2 = GC.CollectionCount(2);
         _lastAllocatedBytes = GC.GetTotalAllocatedBytes();
 
-        Console.WriteLine();
-        Console.WriteLine($"[GC] Monitor started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} (reporting every 5 seconds)");
-        Console.WriteLine("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
-        Console.WriteLine("[GC] Elapsed  │ Clock    │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate");
-        Console.WriteLine("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
+        Log("");
+        Log($"[GC] Monitor started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} (reporting every 5 seconds)");
+        Log("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
+        Log("[GC] Elapsed  │ Clock    │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate");
+        Log("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
 
         while (!ct.IsCancellationRequested)
         {
@@ -378,7 +395,7 @@ class GcMonitor
         var allocatedMB = allocatedBytes / (1024.0 * 1024.0);
         var allocRateKBps = deltaAllocated / 5.0 / 1024.0;
 
-        Console.WriteLine($"[GC] {elapsed:hh\\:mm\\:ss} │ {DateTime.Now:HH:mm:ss} │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
+        Log($"[GC] {elapsed:hh\\:mm\\:ss} │ {DateTime.Now:HH:mm:ss} │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
 
         _lastGen0 = gen0;
         _lastGen1 = gen1;
@@ -395,21 +412,27 @@ class GcMonitor
         var heapBytes = GC.GetTotalMemory(false);
         var allocatedBytes = GC.GetTotalAllocatedBytes();
 
-        Console.WriteLine();
-        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
-        Console.WriteLine("[GC] Summary");
-        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
-        Console.WriteLine($"[GC]   Runtime:            {elapsed:mm\\:ss\\.fff}");
-        Console.WriteLine($"[GC]   Total Collections:  Gen0={gen0}, Gen1={gen1}, Gen2={gen2}");
-        Console.WriteLine($"[GC]   Final Heap Size:    {heapBytes / (1024.0 * 1024.0):F2} MB");
-        Console.WriteLine($"[GC]   Total Allocated:    {allocatedBytes / (1024.0 * 1024.0):F2} MB");
-        Console.WriteLine($"[GC]   Avg Alloc Rate:     {allocatedBytes / elapsed.TotalSeconds / 1024.0:F1} KB/s");
+        Log("");
+        Log("[GC] ═══════════════════════════════════════════════════════════════════════");
+        Log("[GC] Summary");
+        Log("[GC] ═══════════════════════════════════════════════════════════════════════");
+        Log($"[GC]   Runtime:            {elapsed:hh\\:mm\\:ss\\.fff}");
+        Log($"[GC]   Total Collections:  Gen0={gen0}, Gen1={gen1}, Gen2={gen2}");
+        Log($"[GC]   Final Heap Size:    {heapBytes / (1024.0 * 1024.0):F2} MB");
+        Log($"[GC]   Total Allocated:    {allocatedBytes / (1024.0 * 1024.0):F2} MB");
+        Log($"[GC]   Avg Alloc Rate:     {allocatedBytes / elapsed.TotalSeconds / 1024.0:F1} KB/s");
 
         var gcInfo = GC.GetGCMemoryInfo();
-        Console.WriteLine($"[GC]   High Memory Load:   {gcInfo.HighMemoryLoadThresholdBytes / (1024.0 * 1024.0):F0} MB threshold");
-        Console.WriteLine($"[GC]   Heap Size (Commit): {gcInfo.HeapSizeBytes / (1024.0 * 1024.0):F2} MB");
-        Console.WriteLine($"[GC]   Fragmented Bytes:   {gcInfo.FragmentedBytes / 1024.0:F1} KB");
-        Console.WriteLine($"[GC]   Pinned Objects:     {gcInfo.PinnedObjectsCount}");
-        Console.WriteLine("[GC] ═══════════════════════════════════════════════════════════════════════");
+        Log($"[GC]   High Memory Load:   {gcInfo.HighMemoryLoadThresholdBytes / (1024.0 * 1024.0):F0} MB threshold");
+        Log($"[GC]   Heap Size (Commit): {gcInfo.HeapSizeBytes / (1024.0 * 1024.0):F2} MB");
+        Log($"[GC]   Fragmented Bytes:   {gcInfo.FragmentedBytes / 1024.0:F1} KB");
+        Log($"[GC]   Pinned Objects:     {gcInfo.PinnedObjectsCount}");
+        Log("[GC] ═══════════════════════════════════════════════════════════════════════");
+    }
+
+    private void Log(string message)
+    {
+        Console.WriteLine(message);
+        _fileLogger?.Information(message);
     }
 }
