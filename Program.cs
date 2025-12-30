@@ -7,55 +7,26 @@ using PureFix.Transport.SocketTransport;
 using PureFix.Transport.Store;
 using PureFix.Types;
 using Serilog;
+using TradeCaptureDemo;
 using TradeCaptureDemo.Support;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI Setup
 // ─────────────────────────────────────────────────────────────────────────────
-var modeArg = new Argument<string>("mode", () => "reset", "Operating mode: reset, recovery, broker-reset, clear");
-var clientOption = new Option<bool>(["--client", "-c"], "Run client (initiator) only");
-var serverOption = new Option<bool>(["--server", "-S"], "Run server (acceptor) only");
-var skeletonOption = new Option<bool>("--skeleton", "Skeleton mode - no app messages, only heartbeats (for GC baseline testing)");
-var logOption = new Option<bool>(["--log", "-l"], "Enable file logging to logs/ directory");
-var storeOption = new Option<string?>(["--store", "-s"], "Use file store in specified directory");
-var configOption = new Option<string?>("--config", "Custom config file path (for --client or --server)");
-var dryRunOption = new Option<bool>("--dry-run", "Read and display file store state, then exit without starting session");
-var truncateSeqOption = new Option<int?>("--truncate-seq", "Truncate sender sequence number to specified value (use with --client and --store)");
-var timeoutOption = new Option<int?>(["--timeout", "-t"], "Exit after specified number of seconds");
-
-var rootCommand = new RootCommand("PureFix Standalone Trade Capture Demo - FIX engine demonstration with GC monitoring")
-{
-    modeArg, clientOption, serverOption, skeletonOption, logOption, storeOption, configOption, dryRunOption, truncateSeqOption, timeoutOption
-};
-
-rootCommand.SetHandler(async (context) =>
-{
-    var mode = context.ParseResult.GetValueForArgument(modeArg);
-    var client = context.ParseResult.GetValueForOption(clientOption);
-    var server = context.ParseResult.GetValueForOption(serverOption);
-    var skeleton = context.ParseResult.GetValueForOption(skeletonOption);
-    var log = context.ParseResult.GetValueForOption(logOption);
-    var store = context.ParseResult.GetValueForOption(storeOption);
-    var config = context.ParseResult.GetValueForOption(configOption);
-    var dryRun = context.ParseResult.GetValueForOption(dryRunOption);
-    var truncateSeq = context.ParseResult.GetValueForOption(truncateSeqOption);
-    var timeout = context.ParseResult.GetValueForOption(timeoutOption);
-
-    var options = new RunOptions(mode, client, server, skeleton, log, store, config, dryRun, truncateSeq, timeout);
-    await Run(options);
-});
+var rootCommand = CliOptions.CreateRootCommand();
+rootCommand.SetHandler(async (CliOptions opt) => await Run(opt), new CliOptionsBinder());
 
 return await rootCommand.InvokeAsync(args);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Main Entry Point
 // ─────────────────────────────────────────────────────────────────────────────
-async Task Run(RunOptions opt)
+async Task Run(CliOptions opt)
 {
     PrintBanner(opt);
 
     // Validate flags
-    if (opt.ClientOnly && opt.ServerOnly)
+    if (opt.Client && opt.Server)
     {
         Console.WriteLine("Error: cannot specify both --client and --server");
         return;
@@ -74,26 +45,26 @@ async Task Run(RunOptions opt)
     var (acceptorConfig, initiatorConfig) = SelectConfigs(opt, paths);
 
     // Apply custom config override
-    if (!string.IsNullOrEmpty(opt.CustomConfig))
+    if (!string.IsNullOrEmpty(opt.Config))
     {
-        if (!File.Exists(opt.CustomConfig))
+        if (!File.Exists(opt.Config))
         {
-            Console.WriteLine($"Error: Config file not found: {opt.CustomConfig}");
+            Console.WriteLine($"Error: Config file not found: {opt.Config}");
             return;
         }
-        if (opt.ClientOnly) initiatorConfig = opt.CustomConfig;
-        if (opt.ServerOnly) acceptorConfig = opt.CustomConfig;
+        if (opt.Client) initiatorConfig = opt.Config;
+        if (opt.Server) acceptorConfig = opt.Config;
     }
 
     // Handle truncate-seq (must be with --client and --store)
     if (opt.TruncateSeq.HasValue)
     {
-        if (!opt.ClientOnly)
+        if (!opt.Client)
         {
             Console.WriteLine("Error: --truncate-seq requires --client");
             return;
         }
-        if (string.IsNullOrEmpty(opt.StoreDirectory))
+        if (string.IsNullOrEmpty(opt.Store))
         {
             Console.WriteLine("Error: --truncate-seq requires --store");
             return;
@@ -105,19 +76,19 @@ async Task Run(RunOptions opt)
     // Handle dry-run (display store state and exit)
     if (opt.DryRun)
     {
-        if (string.IsNullOrEmpty(opt.StoreDirectory))
+        if (string.IsNullOrEmpty(opt.Store))
         {
             Console.WriteLine("Error: --dry-run requires --store");
             return;
         }
-        await DisplayStoreState(opt.ClientOnly ? initiatorConfig : acceptorConfig, paths, opt);
+        await DisplayStoreState(opt.Client ? initiatorConfig : acceptorConfig, paths, opt);
         return;
     }
 
     // Dispatch to appropriate runner
-    if (opt.ClientOnly)
+    if (opt.Client)
         await RunClient(initiatorConfig, paths, opt);
-    else if (opt.ServerOnly)
+    else if (opt.Server)
         await RunServer(acceptorConfig, paths, opt);
     else
         await RunBoth(acceptorConfig, initiatorConfig, paths, opt);
@@ -126,10 +97,10 @@ async Task Run(RunOptions opt)
 // ─────────────────────────────────────────────────────────────────────────────
 // Run Modes
 // ─────────────────────────────────────────────────────────────────────────────
-async Task RunClient(string configPath, PathConfig paths, RunOptions opt)
+async Task RunClient(string configPath, PathConfig paths, CliOptions opt)
 {
     PrintSessionInfo(configPath, paths.DictRootPath, "Client", isAcceptor: false);
-    PrintStoreInfo(opt.StoreDirectory, configPath, paths.DictRootPath);
+    PrintStoreInfo(opt.Store, configPath, paths.DictRootPath);
 
     await WithGcMonitoring(async () =>
     {
@@ -139,10 +110,10 @@ async Task RunClient(string configPath, PathConfig paths, RunOptions opt)
     Console.WriteLine("\nClient session ended.");
 }
 
-async Task RunServer(string configPath, PathConfig paths, RunOptions opt)
+async Task RunServer(string configPath, PathConfig paths, CliOptions opt)
 {
     PrintSessionInfo(configPath, paths.DictRootPath, "Server", isAcceptor: true);
-    PrintStoreInfo(opt.StoreDirectory, configPath, paths.DictRootPath);
+    PrintStoreInfo(opt.Store, configPath, paths.DictRootPath);
 
     await WithGcMonitoring(async () =>
     {
@@ -152,7 +123,7 @@ async Task RunServer(string configPath, PathConfig paths, RunOptions opt)
     Console.WriteLine("\nServer session ended.");
 }
 
-async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig paths, RunOptions opt)
+async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig paths, CliOptions opt)
 {
     PrintModeInfo(opt, paths.StoreDir);
 
@@ -174,19 +145,19 @@ async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig pat
 // ─────────────────────────────────────────────────────────────────────────────
 // Session Management
 // ─────────────────────────────────────────────────────────────────────────────
-async Task StartSession(string configPath, PathConfig paths, string name, RunOptions opt)
+async Task StartSession(string configPath, PathConfig paths, string name, CliOptions opt)
 {
     Console.WriteLine($"Starting {name}{(opt.Skeleton ? " (skeleton)" : "")}...");
 
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
 
     // Override store if directory specified
-    if (!string.IsNullOrEmpty(opt.StoreDirectory) && config is FixConfig fixConfig)
+    if (!string.IsNullOrEmpty(opt.Store) && config is FixConfig fixConfig)
     {
-        fixConfig.SessionStoreFactory = new FileSessionStoreFactory(opt.StoreDirectory);
+        fixConfig.SessionStoreFactory = new FileSessionStoreFactory(opt.Store);
     }
 
-    var storeType = opt.StoreDirectory != null ? "file" : (config.Description?.Store?.Type ?? "memory");
+    var storeType = opt.Store != null ? "file" : (config.Description?.Store?.Type ?? "memory");
     var resetFlag = config.Description?.ResetSeqNumFlag ?? false;
     Console.WriteLine($"  {name}: {config.Description?.SenderCompID} -> {config.Description?.TargetCompID}");
     Console.WriteLine($"  Store: {storeType}, ResetSeqNumFlag: {resetFlag}");
@@ -207,10 +178,10 @@ async Task StartSession(string configPath, PathConfig paths, string name, RunOpt
         var cts = new CancellationTokenSource();
 
         // Set timeout if specified
-        if (opt.TimeoutSecs.HasValue)
+        if (opt.Timeout.HasValue)
         {
-            cts.CancelAfter(TimeSpan.FromSeconds(opt.TimeoutSecs.Value));
-            Console.WriteLine($"  Timeout: {opt.TimeoutSecs.Value} seconds");
+            cts.CancelAfter(TimeSpan.FromSeconds(opt.Timeout.Value));
+            Console.WriteLine($"  Timeout: {opt.Timeout.Value} seconds");
         }
 
         try
@@ -219,7 +190,7 @@ async Task StartSession(string configPath, PathConfig paths, string name, RunOpt
         }
         catch (OperationCanceledException)
         {
-            Console.WriteLine($"\n{name} timed out after {opt.TimeoutSecs} seconds.");
+            Console.WriteLine($"\n{name} timed out after {opt.Timeout} seconds.");
         }
     }
 }
@@ -227,12 +198,12 @@ async Task StartSession(string configPath, PathConfig paths, string name, RunOpt
 // ─────────────────────────────────────────────────────────────────────────────
 // Helper Methods
 // ─────────────────────────────────────────────────────────────────────────────
-void PrintBanner(RunOptions opt)
+void PrintBanner(CliOptions opt)
 {
     Console.WriteLine("PureFix Standalone Trade Capture Demo");
     Console.WriteLine("======================================");
 
-    var runMode = (opt.ClientOnly, opt.ServerOnly, opt.Skeleton) switch
+    var runMode = (opt.Client, opt.Server, opt.Skeleton) switch
     {
         (true, false, true) => "skeleton client",
         (false, true, true) => "skeleton server",
@@ -243,7 +214,7 @@ void PrintBanner(RunOptions opt)
     };
 
     Console.WriteLine($"Mode: {runMode}");
-    if (opt.EnableLogs) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
+    if (opt.Log) Console.WriteLine("Logging: enabled (writing to logs/ directory)");
     Console.WriteLine();
 }
 
@@ -292,7 +263,7 @@ void PrintStoreInfo(string? storeDirectory, string configPath, string dictRootPa
     Console.WriteLine();
 }
 
-void PrintModeInfo(RunOptions opt, string storeDir)
+void PrintModeInfo(CliOptions opt, string storeDir)
 {
     if (opt.Skeleton)
     {
@@ -318,7 +289,7 @@ void PrintModeInfo(RunOptions opt, string storeDir)
     Console.WriteLine();
 }
 
-(string acceptor, string initiator) SelectConfigs(RunOptions opt, PathConfig paths)
+(string acceptor, string initiator) SelectConfigs(CliOptions opt, PathConfig paths)
 {
     var sessionPath = paths.SessionRootPath;
 
@@ -352,7 +323,7 @@ void ClearStore(string storeDir)
     }
 }
 
-async Task DisplayStoreState(string configPath, PathConfig paths, RunOptions opt)
+async Task DisplayStoreState(string configPath, PathConfig paths, CliOptions opt)
 {
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
     var desc = config.Description;
@@ -372,11 +343,11 @@ async Task DisplayStoreState(string configPath, PathConfig paths, RunOptions opt
     Console.WriteLine("╔════════════════════════════════════════════════════════════════════════════╗");
     Console.WriteLine("║                           FILE STORE STATE                                 ║");
     Console.WriteLine("╠════════════════════════════════════════════════════════════════════════════╣");
-    Console.WriteLine($"║  Store Directory:  {opt.StoreDirectory,-54} ║");
+    Console.WriteLine($"║  Store Directory:  {opt.Store,-54} ║");
     Console.WriteLine($"║  Session ID:       {sessionId,-54} ║");
     Console.WriteLine("╟────────────────────────────────────────────────────────────────────────────╢");
 
-    var storeFactory = new FileSessionStoreFactory(opt.StoreDirectory!);
+    var storeFactory = new FileSessionStoreFactory(opt.Store!);
     var store = storeFactory.Create(sessionId);
 
     try
@@ -388,14 +359,16 @@ async Task DisplayStoreState(string configPath, PathConfig paths, RunOptions opt
         Console.WriteLine($"║  Creation Time:    {store.CreationTime,-54} ║");
         Console.WriteLine("╟────────────────────────────────────────────────────────────────────────────╢");
 
-        // Check the actual files
-        var senderFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.sender.seqnum");
-        var targetFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.target.seqnum");
-        var messagesFile = Path.Combine(opt.StoreDirectory!, $"{sessionId}.messages");
+        // Check the actual files (QuickFix-compatible format)
+        var seqnumsFile = Path.Combine(opt.Store!, $"{sessionId}.seqnums");
+        var sessionFile = Path.Combine(opt.Store!, $"{sessionId}.session");
+        var bodyFile = Path.Combine(opt.Store!, $"{sessionId}.body");
+        var headerFile = Path.Combine(opt.Store!, $"{sessionId}.header");
 
-        Console.WriteLine($"║  Sender seq file:  {(File.Exists(senderFile) ? "exists" : "missing"),-54} ║");
-        Console.WriteLine($"║  Target seq file:  {(File.Exists(targetFile) ? "exists" : "missing"),-54} ║");
-        Console.WriteLine($"║  Messages file:    {(File.Exists(messagesFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Seqnums file:     {(File.Exists(seqnumsFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Session file:     {(File.Exists(sessionFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Body file:        {(File.Exists(bodyFile) ? "exists" : "missing"),-54} ║");
+        Console.WriteLine($"║  Header file:      {(File.Exists(headerFile) ? "exists" : "missing"),-54} ║");
     }
     catch (Exception ex)
     {
@@ -406,7 +379,7 @@ async Task DisplayStoreState(string configPath, PathConfig paths, RunOptions opt
     Console.WriteLine("╚════════════════════════════════════════════════════════════════════════════╝");
 }
 
-async Task TruncateSenderSeq(string configPath, PathConfig paths, RunOptions opt)
+async Task TruncateSenderSeq(string configPath, PathConfig paths, CliOptions opt)
 {
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
     var desc = config.Description;
@@ -423,7 +396,7 @@ async Task TruncateSenderSeq(string configPath, PathConfig paths, RunOptions opt
         desc.TargetCompID ?? "unknown"
     );
 
-    var storeFactory = new FileSessionStoreFactory(opt.StoreDirectory!);
+    var storeFactory = new FileSessionStoreFactory(opt.Store!);
     var store = storeFactory.Create(sessionId);
 
     try
@@ -476,21 +449,6 @@ async Task WithGcMonitoring(Func<Task> action, string? logDir)
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-record RunOptions(
-    string Mode,
-    bool ClientOnly,
-    bool ServerOnly,
-    bool Skeleton,
-    bool EnableLogs,
-    string? StoreDirectory,
-    string? CustomConfig,
-    bool DryRun,
-    int? TruncateSeq,
-    int? TimeoutSecs)
-{
-    public string? LogDir => EnableLogs ? Path.Join(AppContext.BaseDirectory, "logs") : null;
-}
-
 class PathConfig
 {
     public string BaseDir { get; } = AppContext.BaseDirectory;
