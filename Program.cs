@@ -341,10 +341,10 @@ class GcMonitor
         _lastAllocatedBytes = GC.GetTotalAllocatedBytes();
 
         Console.WriteLine();
-        Console.WriteLine("[GC] Monitor started (reporting every 5 seconds)");
-        Console.WriteLine("[GC] ─────────────────────────────────────────────────────────────────────────");
-        Console.WriteLine("[GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate");
-        Console.WriteLine("[GC] ─────────────────────────────────────────────────────────────────────────");
+        Console.WriteLine($"[GC] Monitor started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} (reporting every 5 seconds)");
+        Console.WriteLine("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
+        Console.WriteLine("[GC] Elapsed  │ Clock    │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate");
+        Console.WriteLine("[GC] ──────────────────────────────────────────────────────────────────────────────────────");
 
         while (!ct.IsCancellationRequested)
         {
@@ -378,7 +378,7 @@ class GcMonitor
         var allocatedMB = allocatedBytes / (1024.0 * 1024.0);
         var allocRateKBps = deltaAllocated / 5.0 / 1024.0;
 
-        Console.WriteLine($"[GC] {elapsed:mm\\:ss\\.f}  │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
+        Console.WriteLine($"[GC] {elapsed:hh\\:mm\\:ss} │ {DateTime.Now:HH:mm:ss} │ +{deltaGen0,-3} │ +{deltaGen1,-3} │ +{deltaGen2,-3} │ {heapMB,9:F2} │ {allocatedMB,14:F2} │ {allocRateKBps,8:F1} KB/s");
 
         _lastGen0 = gen0;
         _lastGen1 = gen1;

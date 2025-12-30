@@ -12,6 +12,9 @@ public class ConsoleLogFactory : ILogFactory
 
     public ConsoleLogFactory(ISessionDescription? description = null, string? logDir = null)
     {
+        // Use app name from config for log file naming (e.g., "test_client", "test_server")
+        var appName = description?.Application?.Name ?? "app";
+
         var appConfig = new LoggerConfiguration()
             .MinimumLevel.Debug()
             .Enrich.WithThreadId()
@@ -26,14 +29,14 @@ public class ConsoleLogFactory : ILogFactory
             Directory.CreateDirectory(logDir);
             var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
 
-            // App log file
+            // App log file - includes app name for easy identification
             appConfig.WriteTo.File(
-                Path.Combine(logDir, $"app-{timestamp}.log"),
+                Path.Combine(logDir, $"{appName}-app-{timestamp}.log"),
                 outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}");
 
-            // FIX message log file (plain)
+            // FIX message log file (plain) - includes app name
             plainConfig.WriteTo.File(
-                Path.Combine(logDir, $"fix-{timestamp}.log"),
+                Path.Combine(logDir, $"{appName}-fix-{timestamp}.log"),
                 outputTemplate: "{Message:lj}{NewLine}");
         }
 
