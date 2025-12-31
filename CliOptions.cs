@@ -38,6 +38,11 @@ public class CliOptions
     public bool Skeleton { get; set; }
 
     /// <summary>
+    /// Use TLS encrypted connection
+    /// </summary>
+    public bool Tls { get; set; }
+
+    /// <summary>
     /// Custom config file path (for --client or --server)
     /// </summary>
     public string? Config { get; set; }
@@ -99,6 +104,7 @@ public class CliOptions
         rootCommand.AddOption(ClientOption);
         rootCommand.AddOption(ServerOption);
         rootCommand.AddOption(SkeletonOption);
+        rootCommand.AddOption(TlsOption);
         rootCommand.AddOption(ConfigOption);
 
         // Store options
@@ -124,6 +130,7 @@ public class CliOptions
             Client = result.GetValueForOption(ClientOption),
             Server = result.GetValueForOption(ServerOption),
             Skeleton = result.GetValueForOption(SkeletonOption),
+            Tls = result.GetValueForOption(TlsOption),
             Config = result.GetValueForOption(ConfigOption),
             Store = result.GetValueForOption(StoreOption),
             DryRun = result.GetValueForOption(DryRunOption),
@@ -153,6 +160,10 @@ public class CliOptions
     private static readonly Option<bool> SkeletonOption = new(
         name: "--skeleton",
         description: "Skeleton mode - no app messages, only heartbeats (for GC baseline testing)");
+
+    private static readonly Option<bool> TlsOption = new(
+        name: "--tls",
+        description: "Use TLS encrypted connection");
 
     private static readonly Option<string?> ConfigOption = new(
         name: "--config",

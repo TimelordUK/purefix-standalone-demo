@@ -16,7 +16,11 @@ packages/
 store/
 
 # Logs
+logs/
 *.log
+
+# Certificates (self-signed for testing)
+Data/certs/
 
 # Generated types - included in git for visibility
 # Regenerated automatically when dictionary XML changes

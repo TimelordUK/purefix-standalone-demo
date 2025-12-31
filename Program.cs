@@ -265,7 +265,13 @@ void PrintStoreInfo(string? storeDirectory, string configPath, string dictRootPa
 
 void PrintModeInfo(CliOptions opt, string storeDir)
 {
-    if (opt.Skeleton)
+    if (opt.Tls)
+    {
+        Console.WriteLine("TLS MODE: Using encrypted connection");
+        Console.WriteLine("  Certificates: Data/certs/");
+        Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
+    }
+    else if (opt.Skeleton)
     {
         Console.WriteLine("SKELETON MODE: No application messages, only session heartbeats");
         Console.WriteLine("Using MEMORY store with ResetSeqNumFlag=true");
@@ -292,6 +298,13 @@ void PrintModeInfo(CliOptions opt, string storeDir)
 (string acceptor, string initiator) SelectConfigs(CliOptions opt, PathConfig paths)
 {
     var sessionPath = paths.SessionRootPath;
+
+    // TLS mode takes priority
+    if (opt.Tls)
+    {
+        return (Path.Join(sessionPath, "test-acceptor-tls.json"),
+                Path.Join(sessionPath, "test-initiator-tls.json"));
+    }
 
     return (opt.Skeleton || opt.Mode == "reset") switch
     {

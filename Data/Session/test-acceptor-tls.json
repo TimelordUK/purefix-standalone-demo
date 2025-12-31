@@ -1,0 +1,31 @@
+{
+  "application": {
+    "type": "acceptor",
+    "name": "test_server_tls",
+    "tcp": {
+      "host": "localhost",
+      "port": 2345,
+      "tls": {
+        "enabled": true,
+        "certificate": "Data/certs/server/server.pfx",
+        "password": "jspurefix",
+        "validateServerCertificate": false
+      }
+    },
+    "protocol": "ascii",
+    "dictionary": "FIX50SP2.xml"
+  },
+  "store": {
+    "type": "memory"
+  },
+  "Username": "js-server",
+  "Password": "pwd-server",
+  "EncryptMethod": 0,
+  "ResetSeqNumFlag": true,
+  "HeartBtInt": 30,
+  "SenderCompId": "accept-comp",
+  "TargetCompID": "init-comp",
+  "TargetSubID": "fix",
+  "DefaultApplVerID": "t2",
+  "BeginString": "FIX.5.0SP2"
+}
