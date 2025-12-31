@@ -499,6 +499,137 @@ dotnet run -- --skeleton --server
 - With `ResetSeqNumFlag=true` (default for skeleton mode), sequences reset on each logon
 - Reconnect interval is configurable via `reconnectSeconds` in session config
 
+## Test Scenarios
+
+The demo includes a comprehensive test script that validates common FIX session scenarios. These cover the typical situations encountered when connecting to brokers in production.
+
+```bash
+./test-scenarios.sh --help
+```
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        Test Scenarios Summary                               │
+├─────────────────┬───────────────────────────────────────────────────────────┤
+│ seq-mismatch    │ Client sequence too low on logon                          │
+│                 │ → Server rejects, client retries with +1 until aligned    │
+│                 │ → QuickFix compatible behavior                            │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ server-bounce   │ Server restarts mid-session                               │
+│                 │ → Both sides use file store to persist sequences          │
+│                 │ → Session resumes from where it left off                  │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ client-bounce   │ Client restarts mid-session (most common real-world)      │
+│                 │ → Server keeps running (simulates broker)                 │
+│                 │ → Client reconnects with reset=N, resumes from store      │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ broker-reset    │ Server-initiated daily sequence reset                     │
+│                 │ → Client sends reset=N, server responds reset=Y           │
+│                 │ → Both sides reset to seq=1 (broker controls reset time)  │
+│                 │ → Typical broker pattern (e.g., 22:10 daily reset)        │
+├─────────────────┼───────────────────────────────────────────────────────────┤
+│ all             │ Run all scenarios sequentially                            │
+└─────────────────┴───────────────────────────────────────────────────────────┘
+```
+
+**Run individual scenarios:**
+
+```bash
+./test-scenarios.sh seq-mismatch    # Test sequence recovery
+./test-scenarios.sh client-bounce   # Test client reconnection
+./test-scenarios.sh broker-reset    # Test daily reset handling
+./test-scenarios.sh all             # Run all tests
+```
+
+Each scenario validates that:
+- Sequence numbers are correctly persisted and recovered
+- Reset flags are handled according to FIX protocol
+- Sessions can resume after disconnection
+- Both sides remain synchronized
+
+## TLS Encrypted Connections
+
+Most brokers require TLS encryption for FIX connections. PureFix supports TLS 1.2/1.3 with certificate-based authentication.
+
+### Generate Certificates
+
+For testing, generate self-signed certificates:
+
+```bash
+# Linux/macOS
+./genkey.sh                 # Uses default password 'jspurefix'
+./genkey.sh mypassword      # Uses custom password
+
+# Windows (PowerShell)
+.\genkey.ps1                # Interactive prompts
+```
+
+This creates certificates in `Data/certs/`:
+```
+Data/certs/
+├── ca/ca.crt           # Certificate Authority
+├── server/server.pfx   # Server certificate (PFX format for .NET)
+└── client/client.pfx   # Client certificate (PFX format for .NET)
+```
+
+### Run with TLS
+
+```bash
+# Generate certs first (if not already done)
+./genkey.sh
+
+# Run with TLS encryption
+dotnet run -- --tls --timeout 10
+
+# TLS with skeleton mode (for GC baseline testing)
+dotnet run -- --tls --skeleton --timeout 30
+```
+
+### TLS Configuration
+
+The TLS session configs are in `Data/Session/test-*-tls.json`:
+
+```json
+{
+  "application": {
+    "tcp": {
+      "host": "localhost",
+      "port": 2345,
+      "tls": {
+        "enabled": true,
+        "certificate": "Data/certs/server/server.pfx",
+        "password": "jspurefix",
+        "validateServerCertificate": false
+      }
+    }
+  }
+}
+```
+
+**TLS Options:**
+
+| Option | Description |
+|--------|-------------|
+| `enabled` | Enable TLS encryption |
+| `certificate` | Path to PFX/P12 certificate file |
+| `password` | Certificate password |
+| `targetHost` | SNI hostname (client only, defaults to tcp.host) |
+| `validateServerCertificate` | Validate server cert chain (set `false` for self-signed) |
+
+### Connecting to Brokers with TLS
+
+When connecting to a real broker:
+
+1. Obtain their CA certificate or use system trust store
+2. Generate or obtain your client certificate
+3. Convert to PFX format if needed:
+   ```bash
+   openssl pkcs12 -export -out client.pfx \
+       -inkey client.key -in client.crt \
+       -passout pass:yourpassword
+   ```
+4. Configure `validateServerCertificate: true` for production
+
 ## License
 
 MIT
