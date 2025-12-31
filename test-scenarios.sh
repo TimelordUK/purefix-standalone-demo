@@ -10,6 +10,7 @@
 #   seq-mismatch   - Client sequence number mismatch recovery
 #   server-bounce  - Server restart with session recovery
 #   client-bounce  - Client restart with session recovery
+#   broker-reset   - Server-initiated sequence reset (typical broker daily reset)
 #   all            - Run all scenarios
 #
 
@@ -110,6 +111,45 @@ get_client_sender_seq() {
 
 get_server_sender_seq() {
     cat "$STORE_DIR/FIX.5.0SP2-accept-comp-init-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
+}
+
+# Broker-reset mode uses separate store directories
+BROKER_CLIENT_STORE="store/broker-initiator"
+BROKER_SERVER_STORE="store/broker-acceptor"
+
+clean_broker_stores() {
+    print_step "Cleaning broker store directories"
+    rm -rf "$BROKER_CLIENT_STORE" "$BROKER_SERVER_STORE"
+    mkdir -p "$BROKER_CLIENT_STORE" "$BROKER_SERVER_STORE"
+    print_success "Broker stores cleaned"
+}
+
+show_broker_store_state() {
+    local label="$1"
+    print_step "$label"
+
+    if [ -f "$BROKER_CLIENT_STORE/FIX.5.0SP2-init-comp-accept-comp.seqnums" ]; then
+        echo "Client (init-comp -> accept-comp):"
+        cat "$BROKER_CLIENT_STORE/FIX.5.0SP2-init-comp-accept-comp.seqnums"
+        echo ""
+    else
+        echo "  (no client store file yet)"
+    fi
+
+    if [ -f "$BROKER_SERVER_STORE/FIX.5.0SP2-accept-comp-init-comp.seqnums" ]; then
+        echo "Server (accept-comp -> init-comp):"
+        cat "$BROKER_SERVER_STORE/FIX.5.0SP2-accept-comp-init-comp.seqnums"
+    else
+        echo "  (no server store file yet)"
+    fi
+}
+
+get_broker_client_sender_seq() {
+    cat "$BROKER_CLIENT_STORE/FIX.5.0SP2-init-comp-accept-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
+}
+
+get_broker_server_sender_seq() {
+    cat "$BROKER_SERVER_STORE/FIX.5.0SP2-accept-comp-init-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -399,6 +439,121 @@ test_client_bounce() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Scenario: Broker Controlled Reset
+# ─────────────────────────────────────────────────────────────────────────────
+test_broker_reset() {
+    print_banner "SCENARIO: Broker Controlled Reset"
+    echo ""
+    echo "This test demonstrates server-initiated sequence reset."
+    echo "Simulates typical broker behavior (e.g., daily reset at 22:10):"
+    echo "  - Client always sends ResetSeqNumFlag=N"
+    echo "  - Server responds with ResetSeqNumFlag=Y to force reset"
+    echo "  - Both sides reset sequences to 1 and continue"
+
+    # Step 1: Clean broker stores
+    print_header "STEP 1: Clean Start"
+    clean_broker_stores
+
+    # Step 2: First session - build up sequence numbers
+    print_header "STEP 2: First Session - Build Up Sequences"
+    print_info "Starting broker-reset mode session..."
+    print_info "Server sends ResetSeqNumFlag=Y, both start at seq=1"
+    echo ""
+
+    # Start server in background
+    dotnet run -- broker-reset --server --timeout $LONG_TIMEOUT 2>&1 | \
+        grep -v 'Set:' | grep -E 'Starting|SESSION|TX A|RX A|Timeout|timed out|ended' &
+    SERVER_PID=$!
+
+    sleep 2
+
+    # Start client (runs until timeout)
+    dotnet run -- broker-reset --client --timeout $SHORT_TIMEOUT 2>&1 | \
+        grep -v 'Set:' | grep -E 'Starting|SESSION|TX A|RX A|Timeout|timed out|ended'
+
+    # Wait a moment for server to process disconnect
+    sleep 2
+
+    # Kill server
+    kill $SERVER_PID 2>/dev/null || true
+    wait $SERVER_PID 2>/dev/null || true
+
+    # Step 3: Show state after first session
+    print_header "STEP 3: Store State After First Session"
+    show_broker_store_state "Persisted sequence numbers"
+
+    FIRST_CLIENT_SEQ=$(get_broker_client_sender_seq)
+    FIRST_SERVER_SEQ=$(get_broker_server_sender_seq)
+
+    print_info "Client sender seq: $FIRST_CLIENT_SEQ"
+    print_info "Server sender seq: $FIRST_SERVER_SEQ"
+
+    # Step 4: Simulate broker reset time (e.g., 22:10)
+    print_header "STEP 4: Simulating Broker Reset Time"
+    print_info "In production: Both sides shut down at agreed time (e.g., 22:10)"
+    print_info "Waiting 3 seconds to simulate downtime..."
+    sleep 3
+
+    # Step 5: Second session - broker forces reset
+    print_header "STEP 5: Reconnect - Server Forces Reset"
+    print_info "Client sends ResetSeqNumFlag=N (wants to resume from $FIRST_CLIENT_SEQ)"
+    print_info "Server sends ResetSeqNumFlag=Y (forces reset to 1)"
+    print_info "Both sides should reset and continue from seq=1"
+    echo ""
+
+    # Start server again
+    dotnet run -- broker-reset --server --timeout $LONG_TIMEOUT 2>&1 | \
+        grep -v 'Set:' | grep -E 'Starting|SESSION|TX A|RX A|Timeout|timed out|ended' &
+    SERVER_PID=$!
+
+    sleep 2
+
+    # Start client again
+    dotnet run -- broker-reset --client --timeout $SHORT_TIMEOUT 2>&1 | \
+        grep -v 'Set:' | grep -E 'Starting|SESSION|TX A|RX A|Timeout|timed out|ended'
+
+    sleep 1
+    kill $SERVER_PID 2>/dev/null || true
+    wait $SERVER_PID 2>/dev/null || true
+
+    # Step 6: Verify reset
+    print_header "STEP 6: Verify Reset Behavior"
+    show_broker_store_state "Final store state"
+
+    FINAL_CLIENT_SEQ=$(get_broker_client_sender_seq)
+    FINAL_SERVER_SEQ=$(get_broker_server_sender_seq)
+
+    print_header "RESULT"
+
+    # The key test: sequences should have RESET, not continued
+    # After first session, sequences were high (e.g., 5/8)
+    # After reset, they should be low again (e.g., 3/5) - not 8/13
+    # We verify reset worked by checking final seqs are LESS than first_seq + second_session_messages
+
+    if [ "$FINAL_CLIENT_SEQ" -le "$FIRST_CLIENT_SEQ" ] 2>/dev/null; then
+        print_success "SUCCESS: Server-initiated reset worked correctly"
+        echo ""
+        echo "Sequence progression:"
+        echo "  First session - Client: 1 -> $FIRST_CLIENT_SEQ, Server: 1 -> $FIRST_SERVER_SEQ"
+        echo "  After reset   - Client: 1 -> $FINAL_CLIENT_SEQ, Server: 1 -> $FINAL_SERVER_SEQ"
+        echo ""
+        echo "Key observations:"
+        echo "  1. First session built up sequences to $FIRST_CLIENT_SEQ/$FIRST_SERVER_SEQ"
+        echo "  2. On reconnect, server sent ResetSeqNumFlag=Y"
+        echo "  3. Client respected server's reset request"
+        echo "  4. Both sides reset to seq=1 and continued"
+        echo "  5. This is typical broker behavior for daily sequence reset"
+        return 0
+    else
+        print_error "FAILED: Reset did not work - sequences continued instead of resetting"
+        echo "  First session: Client=$FIRST_CLIENT_SEQ, Server=$FIRST_SERVER_SEQ"
+        echo "  After 'reset': Client=$FINAL_CLIENT_SEQ, Server=$FINAL_SERVER_SEQ"
+        echo "  Expected sequences to be <= first session values after reset"
+        return 1
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 show_usage() {
@@ -410,12 +565,14 @@ show_usage() {
     echo "  seq-mismatch   - Client sequence number mismatch recovery"
     echo "  server-bounce  - Server restart with session recovery"
     echo "  client-bounce  - Client restart with session recovery (common real-world scenario)"
+    echo "  broker-reset   - Server-initiated sequence reset (typical broker daily reset)"
     echo "  all            - Run all scenarios"
     echo ""
     echo "Examples:"
     echo "  $0 seq-mismatch"
     echo "  $0 server-bounce"
     echo "  $0 client-bounce"
+    echo "  $0 broker-reset"
     echo "  $0 all"
 }
 
@@ -431,6 +588,9 @@ case "$SCENARIO" in
     client-bounce)
         test_client_bounce
         ;;
+    broker-reset)
+        test_broker_reset
+        ;;
     all)
         test_seq_mismatch
         echo ""
@@ -439,6 +599,9 @@ case "$SCENARIO" in
         echo ""
         echo ""
         test_client_bounce
+        echo ""
+        echo ""
+        test_broker_reset
         ;;
     -h|--help|help)
         show_usage
