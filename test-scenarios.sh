@@ -9,6 +9,7 @@
 # Scenarios:
 #   seq-mismatch   - Client sequence number mismatch recovery
 #   server-bounce  - Server restart with session recovery
+#   client-bounce  - Client restart with session recovery
 #   all            - Run all scenarios
 #
 
@@ -298,6 +299,106 @@ test_server_bounce() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Scenario: Client Bounce Recovery
+# ─────────────────────────────────────────────────────────────────────────────
+test_client_bounce() {
+    print_banner "SCENARIO: Client Bounce Recovery"
+    echo ""
+    echo "This test demonstrates session recovery after client restart."
+    echo "Server keeps running while client disconnects and reconnects."
+    echo "This simulates a real-world scenario of bouncing a client against a broker."
+
+    # Step 1: Clean
+    print_header "STEP 1: Clean Start"
+    clean_store
+
+    # Step 2: Start server (runs for the duration of the test)
+    print_header "STEP 2: Start Server (Long Running)"
+    print_info "Starting server that will run for the entire test..."
+    echo ""
+
+    # Start server in background - runs long enough for both client sessions
+    dotnet run -- --server --store "$STORE_DIR" --timeout $((LONG_TIMEOUT * 3)) 2>&1 | \
+        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect' &
+    SERVER_PID=$!
+
+    # Wait for server to start listening
+    sleep 2
+
+    # Step 3: Start client with short timeout - it will exchange messages then die
+    print_header "STEP 3: First Client Session (Short Lived)"
+    print_info "Starting client with $SHORT_TIMEOUT second timeout..."
+    print_info "Client will exchange messages then exit."
+    echo ""
+
+    dotnet run -- --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended'
+
+    # Client has exited due to timeout
+
+    # Step 4: Show state after first client session
+    print_header "STEP 4: Store State After Client Bounce"
+    show_store_state "Persisted sequence numbers"
+
+    INITIAL_CLIENT_SEQ=$(get_client_sender_seq)
+    INITIAL_SERVER_SEQ=$(get_server_sender_seq)
+
+    print_info "Client sender seq: $INITIAL_CLIENT_SEQ"
+    print_info "Server sender seq: $INITIAL_SERVER_SEQ"
+
+    # Step 5: Wait before client restart (simulate downtime)
+    print_header "STEP 5: Simulating Client Downtime"
+    print_info "Waiting 3 seconds before restarting client..."
+    sleep 3
+
+    # Step 6: Restart client - should resume from store (reset=N)
+    print_header "STEP 6: Reconnect Client - Resume From Store"
+    print_info "Client should reconnect and resume with persisted sequence numbers..."
+    print_info "No sequence reset (reset=N) - this is the common real-world scenario."
+    echo ""
+
+    dotnet run -- --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended'
+
+    # Step 7: Clean up server
+    print_step "Stopping server..."
+    kill $SERVER_PID 2>/dev/null || true
+    wait $SERVER_PID 2>/dev/null || true
+
+    # Step 8: Verify recovery
+    print_header "STEP 7: Verify Recovery"
+    show_store_state "Final store state"
+
+    FINAL_CLIENT_SEQ=$(get_client_sender_seq)
+    FINAL_SERVER_SEQ=$(get_server_sender_seq)
+
+    print_header "RESULT"
+
+    # Check that sequences continued from where they left off
+    if [ "$FINAL_CLIENT_SEQ" -gt "$INITIAL_CLIENT_SEQ" ] 2>/dev/null && \
+       [ "$FINAL_SERVER_SEQ" -gt "$INITIAL_SERVER_SEQ" ] 2>/dev/null; then
+        print_success "SUCCESS: Client reconnected and session resumed correctly"
+        echo ""
+        echo "Sequence number progression:"
+        echo "  Client: $INITIAL_CLIENT_SEQ -> $FINAL_CLIENT_SEQ"
+        echo "  Server: $INITIAL_SERVER_SEQ -> $FINAL_SERVER_SEQ"
+        echo ""
+        echo "Key observations:"
+        echo "  1. Client bounced after $SHORT_TIMEOUT seconds"
+        echo "  2. Server kept running (simulating broker)"
+        echo "  3. Client file store preserved sequence numbers"
+        echo "  4. Session resumed with correct sequence numbers (no reset)"
+        echo "  5. This is the most common real-world reconnection scenario"
+        return 0
+    else
+        print_error "FAILED: Sequence numbers did not progress as expected"
+        echo "  Client: $INITIAL_CLIENT_SEQ -> $FINAL_CLIENT_SEQ"
+        echo "  Server: $INITIAL_SERVER_SEQ -> $FINAL_SERVER_SEQ"
+        return 1
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 show_usage() {
@@ -308,11 +409,13 @@ show_usage() {
     echo "Scenarios:"
     echo "  seq-mismatch   - Client sequence number mismatch recovery"
     echo "  server-bounce  - Server restart with session recovery"
+    echo "  client-bounce  - Client restart with session recovery (common real-world scenario)"
     echo "  all            - Run all scenarios"
     echo ""
     echo "Examples:"
     echo "  $0 seq-mismatch"
     echo "  $0 server-bounce"
+    echo "  $0 client-bounce"
     echo "  $0 all"
 }
 
@@ -325,11 +428,17 @@ case "$SCENARIO" in
     server-bounce)
         test_server_bounce
         ;;
+    client-bounce)
+        test_client_bounce
+        ;;
     all)
         test_seq_mismatch
         echo ""
         echo ""
         test_server_bounce
+        echo ""
+        echo ""
+        test_client_bounce
         ;;
     -h|--help|help)
         show_usage
