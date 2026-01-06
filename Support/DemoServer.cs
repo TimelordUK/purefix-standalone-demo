@@ -29,6 +29,35 @@ internal class DemoServer : BaseApp
 
         switch (msgType)
         {
+            case MsgType.SecurityDefinitionRequest:
+                {
+                    var sdr = (SecurityDefinitionRequest)m_msg_factory.ToFixMessage(view)!;
+                    m_logger.Info($"Received security definition request: {sdr.SecurityReqID}, MarketID={sdr.MarketID}");
+
+                    // Send SecurityDefinition for each registered security
+                    var responseId = 1;
+                    foreach (var symbol in _securities)
+                    {
+                        var secDef = new SecurityDefinition
+                        {
+                            SecurityReqID = sdr.SecurityReqID,
+                            SecurityResponseID = $"sec-resp-{responseId++}",
+                            SecurityRequestResult = SecurityRequestResultValues.ValidRequest,
+                            Instrument = new Instrument
+                            {
+                                Symbol = symbol,
+                                SecurityID = symbol,
+                                SecurityType = "CMDTY"  // Commodity
+                            },
+                            Currency = "USD",
+                            TransactTime = m_clock.Current
+                        };
+                        await Send(MsgTypeValues.SecurityDefinition, secDef);
+                        m_logger.Info($"Sent security definition: {symbol}");
+                    }
+                    break;
+                }
+
             case MsgType.TradeCaptureReportRequest:
                 {
                     var tcr = (TradeCaptureReportRequest)m_msg_factory.ToFixMessage(view)!;

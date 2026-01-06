@@ -7,7 +7,7 @@
       "port": 2345
     },
     "protocol": "ascii",
-    "dictionary": "FIX50SP2.xml"
+    "dictionary": "FIX50SP2-TC.xml"
   },
   "store": {
     "type": "file",

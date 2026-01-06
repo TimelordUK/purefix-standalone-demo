@@ -13,7 +13,7 @@
       }
     },
     "protocol": "ascii",
-    "dictionary": "FIX50SP2.xml"
+    "dictionary": "FIX50SP2-TC.xml"
   },
   "logging": {
     "minimumLevel": "Information",

@@ -30,11 +30,38 @@ dotnet run
 ```
 
 The demo will:
-1. Start a FIX acceptor (server) on `localhost:2346`
+1. Start a FIX acceptor (server) on `localhost:2344`
 2. Start a FIX initiator (client) that connects to the server
 3. Exchange logon messages and establish a session
-4. Client requests trade capture reports
-5. Server streams trade data every 5 seconds
+4. Client requests security definitions for market "20" (Precious Metals)
+5. Server responds with 5 SecurityDefinition messages (Gold, Silver, Platinum, Copper, Steel)
+6. Client receives all securities, then requests trade capture reports
+7. Server streams trade data every 5 seconds
+
+## Message Flow
+
+```
+Client                              Server
+   |                                   |
+   |--- Logon ----------------------->|
+   |<-- Logon -------------------------|
+   |                                   |
+   |--- SecurityDefinitionRequest ---->|  (MarketID=20)
+   |                                   |
+   |<-- SecurityDefinition (Gold) -----|
+   |<-- SecurityDefinition (Silver) ---|
+   |<-- SecurityDefinition (Platinum) -|
+   |<-- SecurityDefinition (Copper) ---|
+   |<-- SecurityDefinition (Steel) ----|
+   |                                   |
+   |--- TradeCaptureReportRequest ---->|  (after 5 securities received)
+   |<-- TradeCaptureReportRequestAck --|
+   |<-- TradeCaptureReport (Gold) -----|
+   |<-- TradeCaptureReport (Silver) ---|
+   |    ... trades continue ...        |
+```
+
+This demonstrates a realistic FIX workflow where the client first discovers available instruments before subscribing to trade data
 
 Press `Ctrl+C` to stop.
 
