@@ -28,36 +28,51 @@ internal class DemoClient : BaseApp
         switch (msgType)
         {
             case MsgType.SecurityDefinition:
-                {
-                    var sd = (SecurityDefinition)m_msg_factory.ToFixMessage(view)!;
-                    var symbol = sd.Instrument?.Symbol ?? "Unknown";
-                    _knownSecurities.Add(symbol);
-                    _receivedSecurityCount++;
-                    m_logger.Info($"[{_receivedSecurityCount}/{ExpectedSecurityCount}] Received Security: {symbol}");
-
-                    // Once we have all securities, request trades
-                    if (_receivedSecurityCount >= ExpectedSecurityCount)
-                    {
-                        m_logger.Info($"Received all {ExpectedSecurityCount} securities - now requesting trades");
-                        await SendTradeCaptureRequest();
-                    }
-                    break;
-                }
+            {
+                await SecurityDefinition(view);
+                break;
+            }
 
             case MsgType.TradeCaptureReport:
-                {
-                    var tc = (TradeCaptureReport)m_msg_factory.ToFixMessage(view)!;
-                    _receivedTradeCount++;
-                    m_logger.Info($"[{_receivedTradeCount}] Received Trade: {tc.Instrument?.Symbol} {tc.LastQty} @ ${tc.LastPx}");
-                    break;
-                }
+            {
+                TradeCaptureReport(view);
+                break;
+            }
 
             case MsgType.TradeCaptureReportRequestAck:
-                {
-                    var tca = (TradeCaptureReportRequestAck)m_msg_factory.ToFixMessage(view)!;
-                    m_logger.Info($"Trade request ack: {tca.TradeRequestID} status={tca.TradeRequestStatus}");
-                    break;
-                }
+            {
+                TradeCaptureReportRequestAck(view);
+                break;
+            }
+        }
+    }
+
+    private void TradeCaptureReportRequestAck(IMessageView view)
+    {
+        var tca = (TradeCaptureReportRequestAck)m_msg_factory.ToFixMessage(view)!;
+        m_logger.Info($"Trade request ack: {tca.TradeRequestID} status={tca.TradeRequestStatus}");
+    }
+
+    private void TradeCaptureReport(IMessageView view)
+    {
+        var tc = (TradeCaptureReport)m_msg_factory.ToFixMessage(view)!;
+        _receivedTradeCount++;
+        m_logger.Info($"[{_receivedTradeCount}] Received Trade: {tc.Instrument?.Symbol} {tc.LastQty} @ ${tc.LastPx}");
+    }
+
+    private async Task SecurityDefinition(IMessageView view)
+    {
+        var sd = (SecurityDefinition)m_msg_factory.ToFixMessage(view)!;
+        var symbol = sd.Instrument?.Symbol ?? "Unknown";
+        _knownSecurities.Add(symbol);
+        _receivedSecurityCount++;
+        m_logger.Info($"[{_receivedSecurityCount}/{ExpectedSecurityCount}] Received Security: {symbol}");
+
+        // Once we have all securities, request trades
+        if (_receivedSecurityCount >= ExpectedSecurityCount)
+        {
+            m_logger.Info($"Received all {ExpectedSecurityCount} securities - now requesting trades knownSecurities = {_knownSecurities.Count}");
+            await SendTradeCaptureRequest();
         }
     }
 

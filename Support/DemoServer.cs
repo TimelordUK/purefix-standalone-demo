@@ -25,86 +25,100 @@ internal class DemoServer : BaseApp
 
     protected override async Task OnApplicationMsg(string msgType, IMessageView view)
     {
-        var seqNo = view.GetInt32((int)MsgTag.MsgSeqNum);
-
         switch (msgType)
         {
             case MsgType.SecurityDefinitionRequest:
-                {
-                    var sdr = (SecurityDefinitionRequest)m_msg_factory.ToFixMessage(view)!;
-                    m_logger.Info($"Received security definition request: {sdr.SecurityReqID}, MarketID={sdr.MarketID}");
-
-                    // Send SecurityDefinition for each registered security
-                    var responseId = 1;
-                    foreach (var symbol in _securities)
-                    {
-                        var secDef = new SecurityDefinition
-                        {
-                            SecurityReqID = sdr.SecurityReqID,
-                            SecurityResponseID = $"sec-resp-{responseId++}",
-                            SecurityRequestResult = SecurityRequestResultValues.ValidRequest,
-                            Instrument = new Instrument
-                            {
-                                Symbol = symbol,
-                                SecurityID = symbol,
-                                SecurityType = "CMDTY"  // Commodity
-                            },
-                            Currency = "USD",
-                            TransactTime = m_clock.Current
-                        };
-                        await Send(MsgTypeValues.SecurityDefinition, secDef);
-                        m_logger.Info($"Sent security definition: {symbol}");
-                    }
-                    break;
-                }
+            {
+                await SecurityDefinitionRequest(view);
+                break;
+            }
 
             case MsgType.TradeCaptureReportRequest:
-                {
-                    var tcr = (TradeCaptureReportRequest)m_msg_factory.ToFixMessage(view)!;
-                    m_logger.Info($"Received trade request: {tcr.TradeRequestID}, SubscriptionType={tcr.SubscriptionRequestType}");
-
-                    // Send ack
-                    var ack = new TradeCaptureReportRequestAck
-                    {
-                        TradeRequestID = tcr.TradeRequestID,
-                        TradeRequestType = tcr.TradeRequestType,
-                        TradeRequestStatus = TradeRequestStatusValues.Accepted,
-                        TradeRequestResult = TradeRequestResultValues.Successful
-                    };
-                    await Send(MsgTypeValues.TradeCaptureReportRequestAck, ack);
-
-                    // Send initial snapshot of trades
-                    await SendBatchOfTrades(5);
-
-                    // Send completed ack for the snapshot
-                    var completedAck = new TradeCaptureReportRequestAck
-                    {
-                        TradeRequestID = tcr.TradeRequestID,
-                        TradeRequestType = tcr.TradeRequestType,
-                        TradeRequestStatus = TradeRequestStatusValues.Completed,
-                        TradeRequestResult = TradeRequestResultValues.Successful
-                    };
-                    await Send(MsgTypeValues.TradeCaptureReportRequestAck, completedAck);
-
-                    // If client requested ongoing updates, start sending unsolicited trades
-                    if (tcr.SubscriptionRequestType == SubscriptionRequestTypeValues.SnapshotAndUpdates)
-                    {
-                        m_logger.Info("Client subscribed to updates - starting unsolicited trade timer");
-                        StartUnsolicitedTradeTimer();
-                    }
-                    break;
-                }
+            {
+                await TradeCaptureReportRequest(view);
+                break;
+            }
 
             default:
+            {
+                await Reject(msgType, view);
+                break;
+            }
+        }
+    }
+
+    private async Task Reject(string msgType, IMessageView view)
+    {
+        var seqNo = view.GetInt32((int)MsgTag.MsgSeqNum);
+        var reject = m_config.MessageFactory?.Reject(msgType, seqNo ?? 0, "unknown msg type.", BusinessRejectReasonValues.UnsupportedMessageType);
+        if (reject != null)
+        {
+            await Send(MsgTypeValues.Reject, reject);
+            m_logger.Info($"Rejecting unknown message type: {msgType}");
+        }
+    }
+
+    private async Task TradeCaptureReportRequest(IMessageView view)
+    {
+        var tcr = (TradeCaptureReportRequest)m_msg_factory.ToFixMessage(view)!;
+        m_logger.Info($"Received trade request: {tcr.TradeRequestID}, SubscriptionType={tcr.SubscriptionRequestType}");
+
+        // Send ack
+        var ack = new TradeCaptureReportRequestAck
+        {
+            TradeRequestID = tcr.TradeRequestID,
+            TradeRequestType = tcr.TradeRequestType,
+            TradeRequestStatus = TradeRequestStatusValues.Accepted,
+            TradeRequestResult = TradeRequestResultValues.Successful
+        };
+        await Send(MsgTypeValues.TradeCaptureReportRequestAck, ack);
+
+        // Send initial snapshot of trades
+        await SendBatchOfTrades(5);
+
+        // Send completed ack for the snapshot
+        var completedAck = new TradeCaptureReportRequestAck
+        {
+            TradeRequestID = tcr.TradeRequestID,
+            TradeRequestType = tcr.TradeRequestType,
+            TradeRequestStatus = TradeRequestStatusValues.Completed,
+            TradeRequestResult = TradeRequestResultValues.Successful
+        };
+        await Send(MsgTypeValues.TradeCaptureReportRequestAck, completedAck);
+
+        // If client requested ongoing updates, start sending unsolicited trades
+        if (tcr.SubscriptionRequestType == SubscriptionRequestTypeValues.SnapshotAndUpdates)
+        {
+            m_logger.Info("Client subscribed to updates - starting unsolicited trade timer");
+            StartUnsolicitedTradeTimer();
+        }
+    }
+
+    private async Task SecurityDefinitionRequest(IMessageView view)
+    {
+        var sdr = (SecurityDefinitionRequest)m_msg_factory.ToFixMessage(view)!;
+        m_logger.Info($"Received security definition request: {sdr.SecurityReqID}, MarketID={sdr.MarketID}");
+
+        // Send SecurityDefinitionRequest for each registered security
+        var responseId = 1;
+        foreach (var symbol in _securities)
+        {
+            var secDef = new SecurityDefinition
+            {
+                SecurityReqID = sdr.SecurityReqID,
+                SecurityResponseID = $"sec-resp-{responseId++}",
+                SecurityRequestResult = SecurityRequestResultValues.ValidRequest,
+                Instrument = new Instrument
                 {
-                    var reject = m_config.MessageFactory?.Reject(msgType, seqNo ?? 0, "unknown msg type.", BusinessRejectReasonValues.UnsupportedMessageType);
-                    if (reject != null)
-                    {
-                        await Send(MsgTypeValues.Reject, reject);
-                        m_logger.Info($"Rejecting unknown message type: {msgType}");
-                    }
-                    break;
-                }
+                    Symbol = symbol,
+                    SecurityID = symbol,
+                    SecurityType = "CMDTY"  // Commodity
+                },
+                Currency = "USD",
+                TransactTime = m_clock.Current
+            };
+            await Send(MsgTypeValues.SecurityDefinition, secDef);
+            m_logger.Info($"Sent security definition: {symbol}");
         }
     }
 

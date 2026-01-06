@@ -8,8 +8,18 @@ using TradeCaptureDemo.Types.FIX50SP2TC.Components;
 
 namespace TradeCaptureDemo.Types.FIX50SP2TC
 {
-	public class FixMessageFactory : IFixMessageFactory
+    public static class IMessageViewExt
+    {
+        public static T? ToMsg<T>(this FixMessageFactory factory, IMessageView v) where T : IFixMessage
+        {
+            var m = factory.ToFixMessage(v);
+            return m != null ? (T?)m : default;
+        }
+    }
+
+    public class FixMessageFactory : IFixMessageFactory
 	{
+		
 		public IFixMessage? ToFixMessage(IMessageView view)
 		{
 			var msgType = view.GetString((int)MsgTag.MsgType);
