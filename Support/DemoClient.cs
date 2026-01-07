@@ -17,8 +17,8 @@ internal class DemoClient : BaseApp
     private const int ExpectedSecurityCount = 5;
     private readonly List<string> _knownSecurities = [];
 
-    public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, AsyncWorkQueue q, IFixClock clock)
-        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, q, clock)
+    public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
+        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
     {
         m_logReceivedMessages = true;
     }

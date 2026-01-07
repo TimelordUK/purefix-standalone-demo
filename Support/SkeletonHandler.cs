@@ -23,9 +23,8 @@ internal class SkeletonHandler : BaseApp
         IFixMessageFactory fixMessageFactory,
         IMessageParser parser,
         IMessageEncoder encoder,
-        AsyncWorkQueue q,
         IFixClock clock)
-        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, q, clock)
+        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
     {
         _role = config.IsInitiator() ? "Client" : "Server";
         m_logReceivedMessages = false; // Minimize allocations

@@ -165,12 +165,11 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
     Console.WriteLine($"  Store config dir: {config.Description?.Store?.Directory ?? "null"}");
 
     var logFactory = new ConsoleLogFactory(config.Description, opt.LogDir);
-    var queue = new AsyncWorkQueue();
     var clock = new RealtimeClock();
 
     BaseAppDI host = opt.Skeleton
-        ? new SkeletonHost(queue, logFactory, clock, config)
-        : new DemoHost(queue, logFactory, clock, config);
+        ? new SkeletonHost(logFactory, clock, config)
+        : new DemoHost(logFactory, clock, config);
 
     var entity = host.Resolve<ITcpEntity>();
     if (entity != null)

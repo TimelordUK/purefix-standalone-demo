@@ -9,5 +9,5 @@ namespace TradeCaptureDemo.Support;
 /// DI host for skeleton mode.
 /// Uses SkeletonSessionFactory to create minimal handlers for GC baseline testing.
 /// </summary>
-internal class SkeletonHost(AsyncWorkQueue q, ILogFactory factory, IFixClock clock, IFixConfig config)
-    : AppHost<SkeletonSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>(q, factory, clock, config);
+internal class SkeletonHost(ILogFactory factory, IFixClock clock, IFixConfig config)
+    : AppHost<SkeletonSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>(factory, clock, config);

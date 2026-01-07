@@ -17,13 +17,12 @@ public class SkeletonSessionFactory(
     IFixMessageFactory fixMessageFactory,
     IMessageParser parser,
     IMessageEncoder encoder,
-    AsyncWorkQueue q,
     IFixClock clock)
     : ISessionFactory
 {
     public FixSession MakeSession()
     {
         // Use the same SkeletonHandler for both client and server
-        return new SkeletonHandler(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock);
+        return new SkeletonHandler(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
     }
 }

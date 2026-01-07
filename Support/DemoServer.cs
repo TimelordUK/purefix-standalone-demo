@@ -17,8 +17,8 @@ internal class DemoServer : BaseApp
     private int _nextExecId = 600000;
     private readonly string[] _securities = ["Gold", "Silver", "Platinum", "Copper", "Steel"];
 
-    public DemoServer(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, AsyncWorkQueue q, IFixClock clock)
-        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, q, clock)
+    public DemoServer(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
+        : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
     {
         m_logReceivedMessages = true;
     }

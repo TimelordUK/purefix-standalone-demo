@@ -10,8 +10,8 @@ public class AppHost<T, U, V> : BaseAppDI
     where U : class, IFixMessageFactory
     where V : class, ISessionMessageFactory
 {
-    protected AppHost(AsyncWorkQueue q, ILogFactory factory, IFixClock clock, IFixConfig config)
-        : base(q, factory, clock, config)
+    protected AppHost(ILogFactory factory, IFixClock clock, IFixConfig config)
+        : base(factory, clock, config)
     {
         _builder.Services.AddSingleton<ISessionFactory, T>();
         _builder.Services.AddSingleton<IFixMessageFactory, U>();

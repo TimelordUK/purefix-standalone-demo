@@ -13,15 +13,14 @@ public class DemoSessionFactory(
     IFixMessageFactory fixMessageFactory,
     IMessageParser parser,
     IMessageEncoder encoder,
-    AsyncWorkQueue q,
     IFixClock clock)
     : ISessionFactory
 {
     public FixSession MakeSession()
     {
         FixSession entity = config.IsInitiator() 
-            ? new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock)
-            : new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, q, clock);
+            ? new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock)
+            : new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
 
         return entity;
     }
