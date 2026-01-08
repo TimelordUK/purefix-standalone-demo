@@ -414,24 +414,27 @@ grep "\[GC\]" gc.log
 
 In skeleton mode, client and server connect and maintain the session with heartbeats only - no application messages are sent. This isolates the engine's baseline allocation behaviour.
 
-**Sample results (15-minute skeleton soak test):**
+**Sample results (10-minute skeleton soak test, v0.1.10-alpha):**
 
 ```
 [GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
 [GC] ─────────────────────────────────────────────────────────────────────────
-[GC] 00:05.0  │ +30  │ +22  │ +5   │    266.37 │         582.50 │ 119284.2 KB/s  <- startup
-[GC] 00:10.0  │ +0   │ +0   │ +0   │    266.42 │         582.55 │      9.6 KB/s
-[GC] 00:15.0  │ +0   │ +0   │ +0   │    266.42 │         582.59 │      8.2 KB/s
+[GC] 00:05.0  │ +14  │ +10  │ +1   │    380.14 │         872.14 │  59640.8 KB/s  <- startup
+[GC] 00:10.0  │ +0   │ +0   │ +0   │    380.15 │         872.15 │      1.9 KB/s
+[GC] 00:15.0  │ +0   │ +0   │ +0   │    380.16 │         872.16 │      1.6 KB/s
+[GC] 00:20.0  │ +0   │ +0   │ +0   │    380.19 │         872.18 │      5.0 KB/s
+[GC] 00:25.0  │ +0   │ +0   │ +0   │    380.20 │         872.19 │      2.0 KB/s
+[GC] 00:30.0  │ +0   │ +0   │ +0   │    380.20 │         872.20 │      1.4 KB/s
 ...
-[GC] 15:00.0  │ +0   │ +0   │ +0   │    266.45 │         582.91 │      6.4 KB/s
+[GC] 10:00.0  │ +0   │ +0   │ +0   │    380.22 │         872.25 │      0.9 KB/s
 ```
 
 | Mode | Steady-State Alloc Rate | Gen0 Collections |
 |------|------------------------|------------------|
-| Skeleton (heartbeats only) | ~6-10 KB/s | 0 over 15 minutes |
+| Skeleton (heartbeats only) | **~1-5 KB/s** | 0 over 10 minutes |
 | With trades (5s batches) | ~40-55 KB/s | ~1 per 5 minutes |
 
-**Key insight:** The engine's baseline overhead is minimal. Zero Gen0 collections over 15 minutes in skeleton mode demonstrates no GC pressure from the session layer, timers, or heartbeat processing. The ~80% of allocations in normal mode come from application-level message encoding/decoding.
+**Key insight:** The engine's baseline overhead is near-zero. Zero Gen0 collections over 10 minutes in skeleton mode demonstrates no GC pressure from the session layer, timers, or heartbeat processing. The v0.1.10-alpha release reduced steady-state allocations from ~11 KB/s to ~1-5 KB/s by removing a redundant async queue layer.
 
 ### Isolated Client/Server Testing
 
@@ -452,15 +455,16 @@ dotnet run -- --skeleton --client   # Client with heartbeats only
 dotnet run -- --client --config /path/to/broker-config.json
 ```
 
-**Sample results (client-only skeleton mode):**
+**Sample results (client-only skeleton mode, v0.1.10-alpha):**
 
 ```
 [GC] Time     │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
 [GC] ─────────────────────────────────────────────────────────────────────────
-[GC] 00:05.0  │ +14  │ +10  │ +1   │    380.26 │         872.13 │  59640.9 KB/s  <- startup
-[GC] 00:10.0  │ +0   │ +0   │ +0   │    380.28 │         872.16 │      4.8 KB/s
-[GC] 00:15.0  │ +0   │ +0   │ +0   │    380.31 │         872.18 │      4.7 KB/s
-[GC] 00:20.0  │ +0   │ +0   │ +0   │    380.34 │         872.20 │      4.8 KB/s
+[GC] 00:05.0  │ +14  │ +10  │ +1   │    380.14 │         872.14 │  59640.8 KB/s  <- startup
+[GC] 00:10.0  │ +0   │ +0   │ +0   │    380.15 │         872.15 │      1.9 KB/s
+[GC] 00:15.0  │ +0   │ +0   │ +0   │    380.16 │         872.16 │      1.6 KB/s
+[GC] 00:20.0  │ +0   │ +0   │ +0   │    380.19 │         872.18 │      5.0 KB/s
+[GC] 00:25.0  │ +0   │ +0   │ +0   │    380.20 │         872.19 │      2.0 KB/s
 ```
 
 This allows you to:
