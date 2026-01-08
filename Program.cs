@@ -1,6 +1,5 @@
 using System.CommandLine;
 using System.Diagnostics;
-using Arrow.Threading.Tasks;
 using PureFix.Transport;
 using PureFix.Transport.Session;
 using PureFix.Transport.SocketTransport;

@@ -1,4 +1,3 @@
-using Arrow.Threading.Tasks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using PureFix.Transport.Session;

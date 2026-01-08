@@ -1,4 +1,3 @@
-using Arrow.Threading.Tasks;
 using PureFix.Transport.Session;
 using PureFix.Types;
 using TradeCaptureDemo.Types.FIX50SP2TC;

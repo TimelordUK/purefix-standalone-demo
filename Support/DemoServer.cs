@@ -1,4 +1,3 @@
-using Arrow.Threading.Tasks;
 using PureFix.Buffer;
 using PureFix.Transport.Ascii;
 using PureFix.Transport.Recovery;
