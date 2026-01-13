@@ -15,6 +15,7 @@ internal class DemoServer : BaseApp
     private int _nextTradeId = 100000;
     private int _nextExecId = 600000;
     private readonly string[] _securities = ["Gold", "Silver", "Platinum", "Copper", "Steel"];
+    private CancellationTokenSource? _tradeTimerCts;
 
     public DemoServer(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
@@ -134,6 +135,12 @@ internal class DemoServer : BaseApp
     {
         if (m_parentToken == null) return;
 
+        // Cancel any existing timer before starting a new one
+        StopUnsolicitedTradeTimer();
+
+        // Create a linked token so we can cancel independently
+        _tradeTimerCts = CancellationTokenSource.CreateLinkedTokenSource(m_parentToken.Value);
+
         var timer = new TimerDispatcher.AsyncTimer(m_logger);
         var batchNumber = 1;
 
@@ -143,7 +150,18 @@ internal class DemoServer : BaseApp
             m_logger.Info($"Sending unsolicited batch #{batchNumber} ({count} trades)");
             await SendBatchOfTrades(count);
             batchNumber++;
-        }, m_parentToken.Value);
+        }, _tradeTimerCts.Token);
+    }
+
+    private void StopUnsolicitedTradeTimer()
+    {
+        if (_tradeTimerCts != null)
+        {
+            m_logger.Info("Stopping unsolicited trade timer");
+            _tradeTimerCts.Cancel();
+            _tradeTimerCts.Dispose();
+            _tradeTimerCts = null;
+        }
     }
 
     private TradeCaptureReport MakeTrade(int index)
@@ -185,6 +203,7 @@ internal class DemoServer : BaseApp
 
     protected override void OnStopped(Exception? error)
     {
+        StopUnsolicitedTradeTimer();
         m_logger.Info("Server stopped.");
     }
 }
