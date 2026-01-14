@@ -598,11 +598,12 @@ test_socket_drop() {
     echo ""
     echo "NOTE: This test requires sudo for 'ss -K' command to kill the socket."
 
-    # Check sudo access
-    if ! sudo -n true 2>/dev/null; then
-        print_error "This test requires passwordless sudo or run with: sudo $0 socket-drop"
-        echo "To enable passwordless sudo for ss, add to /etc/sudoers:"
-        echo "  $USER ALL=(ALL) NOPASSWD: /usr/bin/ss"
+    # Check sudo access for ss command specifically
+    if ! sudo -n /usr/bin/ss -V >/dev/null 2>&1; then
+        print_error "This test requires passwordless sudo for ss, or run with: sudo $0 socket-drop"
+        echo "To enable passwordless sudo for ss, run:"
+        echo "  echo '$USER ALL=(ALL) NOPASSWD: /usr/bin/ss' | sudo tee /etc/sudoers.d/99-ss-nopasswd"
+        echo "  sudo chmod 440 /etc/sudoers.d/99-ss-nopasswd"
         return 1
     fi
 
@@ -614,23 +615,22 @@ test_socket_drop() {
     print_header "STEP 2: Start Server"
     print_info "Starting server with long timeout..."
 
-    dotnet run -- recovery --server --store "$STORE_DIR" --timeout 60 2>&1 | \
-        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect|reconnect' &
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout 60 2>&1 &
     SERVER_PID=$!
 
-    sleep 5  # Wait for server to start
+    # Wait for server to fully start (FIX dictionary load takes time)
+    sleep 6
 
     # Step 3: Start client (long running with reconnect)
     print_header "STEP 3: Start Client"
     print_info "Starting client with long timeout..."
 
-    dotnet run -- recovery --client --store "$STORE_DIR" --timeout 60 2>&1 | \
-        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect|reconnect|attempt' &
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout 60 2>&1 &
     CLIENT_PID=$!
 
     # Wait for session to establish and exchange some messages
-    print_info "Waiting 8 seconds for session to establish and exchange messages..."
-    sleep 8
+    print_info "Waiting 10 seconds for session to establish and exchange messages..."
+    sleep 10
 
     # Record state before socket drop
     print_header "STEP 4: Record State Before Socket Drop"
@@ -644,11 +644,19 @@ test_socket_drop() {
     print_info "Finding and killing TCP connection on port 2345..."
 
     # Show the connection before killing
-    ss -tnp 2>/dev/null | grep 2345 || true
+    echo "Active connections:"
+    ss -tnp 2>/dev/null | grep -E '2345|State' || echo "(none found)"
 
-    # Kill connections on port 2345
-    sudo ss -K dport = 2345 2>/dev/null || true
-    sudo ss -K sport = 2345 2>/dev/null || true
+    # Kill connections on port 2345 (try both directions)
+    echo ""
+    print_info "Killing sockets..."
+    sudo /usr/bin/ss -K dport = 2345 2>&1 || true
+    sudo /usr/bin/ss -K sport = 2345 2>&1 || true
+
+    # Verify socket is gone
+    echo ""
+    echo "Connections after kill:"
+    ss -tnp 2>/dev/null | grep 2345 || echo "(none - socket killed successfully)"
 
     print_success "Socket killed! Client should detect disconnect and reconnect..."
 
