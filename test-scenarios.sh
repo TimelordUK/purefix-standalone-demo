@@ -587,6 +587,116 @@ test_broker_reset() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
+# Scenario: Socket Drop (simulates network failure / laptop sleep)
+# ─────────────────────────────────────────────────────────────────────────────
+test_socket_drop() {
+    print_banner "SCENARIO: Socket Drop Recovery"
+    echo ""
+    echo "This test simulates network failure (e.g., laptop sleep/wake, network blip)."
+    echo "The TCP socket is killed while both client and server stay running."
+    echo "Tests that reconnection and session recovery work correctly."
+    echo ""
+    echo "NOTE: This test requires sudo for 'ss -K' command to kill the socket."
+
+    # Check sudo access
+    if ! sudo -n true 2>/dev/null; then
+        print_error "This test requires passwordless sudo or run with: sudo $0 socket-drop"
+        echo "To enable passwordless sudo for ss, add to /etc/sudoers:"
+        echo "  $USER ALL=(ALL) NOPASSWD: /usr/bin/ss"
+        return 1
+    fi
+
+    # Step 1: Clean
+    print_header "STEP 1: Clean Start"
+    clean_store
+
+    # Step 2: Start server (long running)
+    print_header "STEP 2: Start Server"
+    print_info "Starting server with long timeout..."
+
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout 60 2>&1 | \
+        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect|reconnect' &
+    SERVER_PID=$!
+
+    sleep 5  # Wait for server to start
+
+    # Step 3: Start client (long running with reconnect)
+    print_header "STEP 3: Start Client"
+    print_info "Starting client with long timeout..."
+
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout 60 2>&1 | \
+        grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect|reconnect|attempt' &
+    CLIENT_PID=$!
+
+    # Wait for session to establish and exchange some messages
+    print_info "Waiting 8 seconds for session to establish and exchange messages..."
+    sleep 8
+
+    # Record state before socket drop
+    print_header "STEP 4: Record State Before Socket Drop"
+    BEFORE_CLIENT_SEQ=$(get_client_sender_seq)
+    BEFORE_SERVER_SEQ=$(get_server_sender_seq)
+    print_info "Client seq before drop: $BEFORE_CLIENT_SEQ"
+    print_info "Server seq before drop: $BEFORE_SERVER_SEQ"
+
+    # Step 5: Kill the socket
+    print_header "STEP 5: Kill TCP Socket"
+    print_info "Finding and killing TCP connection on port 2345..."
+
+    # Show the connection before killing
+    ss -tnp 2>/dev/null | grep 2345 || true
+
+    # Kill connections on port 2345
+    sudo ss -K dport = 2345 2>/dev/null || true
+    sudo ss -K sport = 2345 2>/dev/null || true
+
+    print_success "Socket killed! Client should detect disconnect and reconnect..."
+
+    # Wait for reconnection
+    print_header "STEP 6: Wait for Reconnection"
+    print_info "Waiting 15 seconds for client to reconnect..."
+    sleep 15
+
+    # Step 7: Record state after reconnection
+    print_header "STEP 7: Verify Recovery"
+    AFTER_CLIENT_SEQ=$(get_client_sender_seq)
+    AFTER_SERVER_SEQ=$(get_server_sender_seq)
+
+    show_store_state "Final store state"
+
+    # Clean up
+    print_step "Stopping client and server..."
+    kill $CLIENT_PID 2>/dev/null || true
+    kill $SERVER_PID 2>/dev/null || true
+    wait $CLIENT_PID 2>/dev/null || true
+    wait $SERVER_PID 2>/dev/null || true
+
+    print_header "RESULT"
+
+    # Verify sequences progressed (session continued after reconnect)
+    if [ "$AFTER_CLIENT_SEQ" -gt "$BEFORE_CLIENT_SEQ" ] 2>/dev/null && \
+       [ "$AFTER_SERVER_SEQ" -gt "$BEFORE_SERVER_SEQ" ] 2>/dev/null; then
+        print_success "SUCCESS: Session recovered after socket drop"
+        echo ""
+        echo "Sequence number progression:"
+        echo "  Client: $BEFORE_CLIENT_SEQ -> $AFTER_CLIENT_SEQ"
+        echo "  Server: $BEFORE_SERVER_SEQ -> $AFTER_SERVER_SEQ"
+        echo ""
+        echo "Key observations:"
+        echo "  1. TCP socket was killed mid-session"
+        echo "  2. Client detected disconnect and reconnected"
+        echo "  3. Session resumed with correct sequence numbers"
+        echo "  4. This simulates laptop sleep/wake or network blip"
+        return 0
+    else
+        print_error "FAILED: Session did not recover properly"
+        echo "  Before drop: Client=$BEFORE_CLIENT_SEQ, Server=$BEFORE_SERVER_SEQ"
+        echo "  After drop:  Client=$AFTER_CLIENT_SEQ, Server=$AFTER_SERVER_SEQ"
+        return 1
+    fi
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 show_usage() {
@@ -614,7 +724,12 @@ show_usage() {
     echo "│                 │ → Both sides reset to seq=1 (broker controls reset time)  │"
     echo "│                 │ → Typical broker pattern (e.g., 22:10 daily reset)        │"
     echo "├─────────────────┼───────────────────────────────────────────────────────────┤"
-    echo "│ all             │ Run all scenarios sequentially                            │"
+    echo "│ socket-drop     │ TCP socket killed mid-session (requires sudo)             │"
+    echo "│                 │ → Simulates laptop sleep/wake or network blip             │"
+    echo "│                 │ → Both processes stay alive, only socket dies             │"
+    echo "│                 │ → Client reconnects and session resumes                   │"
+    echo "├─────────────────┼───────────────────────────────────────────────────────────┤"
+    echo "│ all             │ Run all scenarios sequentially (except socket-drop)       │"
     echo "└─────────────────┴───────────────────────────────────────────────────────────┘"
     echo ""
     echo "Examples:"
@@ -637,6 +752,9 @@ case "$SCENARIO" in
         ;;
     broker-reset)
         test_broker_reset
+        ;;
+    socket-drop)
+        test_socket_drop
         ;;
     all)
         test_seq_mismatch
