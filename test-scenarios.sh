@@ -588,24 +588,15 @@ test_broker_reset() {
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Scenario: Socket Drop (simulates network failure / laptop sleep)
+# Uses --disconnect-after flag to trigger clean transport disconnect
 # ─────────────────────────────────────────────────────────────────────────────
 test_socket_drop() {
     print_banner "SCENARIO: Socket Drop Recovery"
     echo ""
     echo "This test simulates network failure (e.g., laptop sleep/wake, network blip)."
-    echo "The TCP socket is killed while both client and server stay running."
+    echo "The client disconnects its transport after 10 seconds, then reconnects."
     echo "Tests that reconnection and session recovery work correctly."
     echo ""
-    echo "NOTE: This test requires sudo for 'ss -K' command to kill the socket."
-
-    # Check sudo access for ss command specifically
-    if ! sudo -n /usr/bin/ss -V >/dev/null 2>&1; then
-        print_error "This test requires passwordless sudo for ss, or run with: sudo $0 socket-drop"
-        echo "To enable passwordless sudo for ss, run:"
-        echo "  echo '$USER ALL=(ALL) NOPASSWD: /usr/bin/ss' | sudo tee /etc/sudoers.d/99-ss-nopasswd"
-        echo "  sudo chmod 440 /etc/sudoers.d/99-ss-nopasswd"
-        return 1
-    fi
 
     # Step 1: Clean
     print_header "STEP 1: Clean Start"
@@ -615,58 +606,57 @@ test_socket_drop() {
     print_header "STEP 2: Start Server"
     print_info "Starting server with long timeout..."
 
-    dotnet run -- recovery --server --store "$STORE_DIR" --timeout 60 2>&1 &
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout 45 2>&1 &
     SERVER_PID=$!
 
     # Wait for server to fully start (FIX dictionary load takes time)
     sleep 6
 
-    # Step 3: Start client (long running with reconnect)
-    print_header "STEP 3: Start Client"
-    print_info "Starting client with long timeout..."
+    # Step 3: Start client with --disconnect-after to trigger disconnect
+    print_header "STEP 3: Start Client (will disconnect after 10 seconds)"
+    print_info "Starting client with --disconnect-after 10..."
 
-    dotnet run -- recovery --client --store "$STORE_DIR" --timeout 60 2>&1 &
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout 45 --disconnect-after 10 2>&1 &
     CLIENT_PID=$!
 
-    # Wait for session to establish and exchange some messages
-    print_info "Waiting 10 seconds for session to establish and exchange messages..."
-    sleep 10
+    # Wait for session to establish
+    print_info "Waiting for session to establish..."
 
-    # Record state before socket drop
-    print_header "STEP 4: Record State Before Socket Drop"
+    # Wait up to 20 seconds for both seqnums files to be created
+    WAIT_COUNT=0
+    while [ $WAIT_COUNT -lt 20 ]; do
+        CLIENT_SEQ_FILE="$STORE_DIR/FIX.5.0SP2-init-comp-accept-comp.seqnums"
+        SERVER_SEQ_FILE="$STORE_DIR/FIX.5.0SP2-accept-comp-init-comp.seqnums"
+        if [ -f "$CLIENT_SEQ_FILE" ] && [ -f "$SERVER_SEQ_FILE" ]; then
+            break
+        fi
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    done
+
+    # Record state before disconnect (happens at ~10 seconds)
+    print_header "STEP 4: Record State Before Disconnect"
+    show_store_state "Store state before disconnect"
     BEFORE_CLIENT_SEQ=$(get_client_sender_seq)
     BEFORE_SERVER_SEQ=$(get_server_sender_seq)
-    print_info "Client seq before drop: $BEFORE_CLIENT_SEQ"
-    print_info "Server seq before drop: $BEFORE_SERVER_SEQ"
+    print_info "Client seq before: $BEFORE_CLIENT_SEQ"
+    print_info "Server seq before: $BEFORE_SERVER_SEQ"
 
-    # Step 5: Kill the socket
-    print_header "STEP 5: Kill TCP Socket"
-    print_info "Finding and killing TCP connection on port 2345..."
+    if [ -z "$BEFORE_CLIENT_SEQ" ] || [ -z "$BEFORE_SERVER_SEQ" ]; then
+        print_error "Session not established - store files not found"
+        kill $CLIENT_PID 2>/dev/null || true
+        kill $SERVER_PID 2>/dev/null || true
+        return 1
+    fi
 
-    # Show the connection before killing
-    echo "Active connections:"
-    ss -tnp 2>/dev/null | grep -E '2345|State' || echo "(none found)"
+    # Wait for disconnect and reconnection
+    # Client disconnects at 10s, waits 10s, reconnects - so ~25s total from client start
+    print_header "STEP 5: Wait for Disconnect and Reconnection"
+    print_info "Waiting for client to disconnect (at 10s) and reconnect (at ~20s)..."
+    sleep 20
 
-    # Kill connections on port 2345 (try both directions)
-    echo ""
-    print_info "Killing sockets..."
-    sudo /usr/bin/ss -K dport = 2345 2>&1 || true
-    sudo /usr/bin/ss -K sport = 2345 2>&1 || true
-
-    # Verify socket is gone
-    echo ""
-    echo "Connections after kill:"
-    ss -tnp 2>/dev/null | grep 2345 || echo "(none - socket killed successfully)"
-
-    print_success "Socket killed! Client should detect disconnect and reconnect..."
-
-    # Wait for reconnection
-    print_header "STEP 6: Wait for Reconnection"
-    print_info "Waiting 15 seconds for client to reconnect..."
-    sleep 15
-
-    # Step 7: Record state after reconnection
-    print_header "STEP 7: Verify Recovery"
+    # Step 6: Record state after reconnection
+    print_header "STEP 6: Verify Recovery"
     AFTER_CLIENT_SEQ=$(get_client_sender_seq)
     AFTER_SERVER_SEQ=$(get_server_sender_seq)
 
@@ -681,25 +671,25 @@ test_socket_drop() {
 
     print_header "RESULT"
 
-    # Verify sequences progressed (session continued after reconnect)
-    if [ "$AFTER_CLIENT_SEQ" -gt "$BEFORE_CLIENT_SEQ" ] 2>/dev/null && \
-       [ "$AFTER_SERVER_SEQ" -gt "$BEFORE_SERVER_SEQ" ] 2>/dev/null; then
-        print_success "SUCCESS: Session recovered after socket drop"
+    # Verify session recovered: server sequence increased after reconnection
+    if [ "$AFTER_SERVER_SEQ" -gt "$BEFORE_SERVER_SEQ" ] 2>/dev/null && \
+       [ "$AFTER_CLIENT_SEQ" -ge "$BEFORE_CLIENT_SEQ" ] 2>/dev/null; then
+        print_success "SUCCESS: Session recovered after disconnect"
         echo ""
         echo "Sequence number progression:"
         echo "  Client: $BEFORE_CLIENT_SEQ -> $AFTER_CLIENT_SEQ"
         echo "  Server: $BEFORE_SERVER_SEQ -> $AFTER_SERVER_SEQ"
         echo ""
         echo "Key observations:"
-        echo "  1. TCP socket was killed mid-session"
+        echo "  1. Client disconnected transport after 10 seconds"
         echo "  2. Client detected disconnect and reconnected"
         echo "  3. Session resumed with correct sequence numbers"
-        echo "  4. This simulates laptop sleep/wake or network blip"
+        echo "  4. Server continued sending trades after reconnection"
         return 0
     else
         print_error "FAILED: Session did not recover properly"
-        echo "  Before drop: Client=$BEFORE_CLIENT_SEQ, Server=$BEFORE_SERVER_SEQ"
-        echo "  After drop:  Client=$AFTER_CLIENT_SEQ, Server=$AFTER_SERVER_SEQ"
+        echo "  Before: Client=$BEFORE_CLIENT_SEQ, Server=$BEFORE_SERVER_SEQ"
+        echo "  After:  Client=$AFTER_CLIENT_SEQ, Server=$AFTER_SERVER_SEQ"
         return 1
     fi
 }

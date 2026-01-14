@@ -10,12 +10,18 @@ namespace TradeCaptureDemo.Support;
 
 internal class DemoClient : BaseApp
 {
+    /// <summary>
+    /// If set, disconnect the transport after this many seconds (for testing reconnection)
+    /// </summary>
+    public static int? DisconnectAfterSeconds { get; set; }
+
     private readonly FixMessageFactory m_msg_factory = new();
     private int _receivedTradeCount;
     private int _receivedSecurityCount;
     private const int ExpectedSecurityCount = 5;
     private readonly List<string> _knownSecurities = [];
     private bool _hasSentTradeRequest;
+    private bool _hasScheduledDisconnect;
 
     public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
@@ -90,6 +96,20 @@ internal class DemoClient : BaseApp
         _receivedTradeCount = 0;
         _knownSecurities.Clear();
         _hasSentTradeRequest = false;
+
+        // Schedule disconnect if configured (only once per session lifetime)
+        if (DisconnectAfterSeconds.HasValue && !_hasScheduledDisconnect)
+        {
+            _hasScheduledDisconnect = true;
+            var seconds = DisconnectAfterSeconds.Value;
+            m_logger.Info($"Will disconnect transport in {seconds} seconds (testing reconnection)");
+            _ = Task.Run(async () =>
+            {
+                await Task.Delay(TimeSpan.FromSeconds(seconds));
+                m_logger.Info("Triggering scheduled disconnect for reconnection test");
+                Stop();
+            });
+        }
 
         m_logger.Info("Session ready - requesting security definitions for market 20 (Precious Metals)");
 

@@ -80,6 +80,11 @@ public class CliOptions
     /// </summary>
     public int? Timeout { get; set; }
 
+    /// <summary>
+    /// Disconnect transport after specified number of seconds (for testing reconnection)
+    /// </summary>
+    public int? DisconnectAfter { get; set; }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Computed Properties
     // ─────────────────────────────────────────────────────────────────────────
@@ -115,6 +120,7 @@ public class CliOptions
         // Runtime options
         rootCommand.AddOption(LogOption);
         rootCommand.AddOption(TimeoutOption);
+        rootCommand.AddOption(DisconnectAfterOption);
 
         return rootCommand;
     }
@@ -137,6 +143,7 @@ public class CliOptions
             TruncateSeq = result.GetValueForOption(TruncateSeqOption),
             Log = result.GetValueForOption(LogOption),
             Timeout = result.GetValueForOption(TimeoutOption),
+            DisconnectAfter = result.GetValueForOption(DisconnectAfterOption),
         };
     }
 
@@ -188,6 +195,10 @@ public class CliOptions
     private static readonly Option<int?> TimeoutOption = new(
         aliases: ["--timeout", "-t"],
         description: "Exit after specified number of seconds");
+
+    private static readonly Option<int?> DisconnectAfterOption = new(
+        name: "--disconnect-after",
+        description: "Disconnect transport after N seconds (for testing reconnection)");
 }
 
 /// <summary>

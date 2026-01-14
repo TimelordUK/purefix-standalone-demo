@@ -148,6 +148,9 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
 {
     Console.WriteLine($"Starting {name}{(opt.Skeleton ? " (skeleton)" : "")}...");
 
+    // Set disconnect-after option for DemoClient (static property)
+    DemoClient.DisconnectAfterSeconds = opt.DisconnectAfter;
+
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
 
     // Override store if directory specified
