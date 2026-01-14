@@ -243,17 +243,17 @@ test_server_bounce() {
     print_info "Both will exchange messages until server times out."
     echo ""
 
-    # Start server in background with timeout
-    dotnet run -- --server --store "$STORE_DIR" --timeout $LONG_TIMEOUT 2>&1 | \
+    # Start server in background with timeout (use recovery mode for persistent sequences)
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout $LONG_TIMEOUT 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended' &
     SERVER_PID=$!
 
-    # Wait for server to start listening
-    sleep 1
+    # Wait for server to load FIX dictionary and start listening (dotnet startup is slow)
+    sleep 5
 
     # Start client (will run until server dies)
     print_info "Starting client..."
-    dotnet run -- --client --store "$STORE_DIR" --timeout $((LONG_TIMEOUT + 5)) 2>&1 | \
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout $((LONG_TIMEOUT + 5)) 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|disconnect|ended' &
     CLIENT_PID=$!
 
@@ -290,15 +290,17 @@ test_server_bounce() {
     print_info "Both sides should resume with persisted sequence numbers..."
     echo ""
 
-    # Start server again
-    dotnet run -- --server --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+    # Start server again (use recovery mode for persistent sequences)
+    # Use LONG_TIMEOUT since we need to wait 5s for startup before client connects
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout $LONG_TIMEOUT 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended' &
     SERVER_PID=$!
 
-    sleep 1
+    # Wait for server to load FIX dictionary and start listening (dotnet startup is slow)
+    sleep 5
 
-    # Start client again
-    dotnet run -- --client --store "$STORE_DIR" --timeout $((SHORT_TIMEOUT + 2)) 2>&1 | \
+    # Start client again (use recovery mode for persistent sequences)
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|ended' &
     CLIENT_PID=$!
 
@@ -357,13 +359,13 @@ test_client_bounce() {
     print_info "Starting server that will run for the entire test..."
     echo ""
 
-    # Start server in background - runs long enough for both client sessions
-    dotnet run -- --server --store "$STORE_DIR" --timeout $((LONG_TIMEOUT * 3)) 2>&1 | \
+    # Start server in background - runs long enough for both client sessions (use recovery mode)
+    dotnet run -- recovery --server --store "$STORE_DIR" --timeout $((LONG_TIMEOUT * 3)) 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended|disconnect' &
     SERVER_PID=$!
 
-    # Wait for server to start listening
-    sleep 2
+    # Wait for server to load FIX dictionary and start listening (dotnet startup is slow)
+    sleep 5
 
     # Step 3: Start client with short timeout - it will exchange messages then die
     print_header "STEP 3: First Client Session (Short Lived)"
@@ -371,7 +373,7 @@ test_client_bounce() {
     print_info "Client will exchange messages then exit."
     echo ""
 
-    dotnet run -- --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended'
 
     # Client has exited due to timeout
@@ -397,7 +399,7 @@ test_client_bounce() {
     print_info "No sequence reset (reset=N) - this is the common real-world scenario."
     echo ""
 
-    dotnet run -- --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+    dotnet run -- recovery --client --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
         grep -E 'Starting|SESSION|TX|RX|Timeout|timed out|ended'
 
     # Step 7: Clean up server

@@ -15,8 +15,8 @@
         2. Uncomment the ProjectReference
         3. Run: dotnet build
     -->
-    <PackageReference Include="PureFix.Transport" Version="0.1.18-alpha" /> 
-    <!-- <ProjectReference Include="../cspurefix/PureFix.Transport/PureFix.Transport.csproj" /> -->
+    <!-- <PackageReference Include="PureFix.Transport" Version="0.1.18-alpha" /> -->
+    <ProjectReference Include="../cspurefix/PureFix.Transport/PureFix.Transport.csproj" />
 
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />

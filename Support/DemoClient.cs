@@ -15,6 +15,7 @@ internal class DemoClient : BaseApp
     private int _receivedSecurityCount;
     private const int ExpectedSecurityCount = 5;
     private readonly List<string> _knownSecurities = [];
+    private bool _hasSentTradeRequest;
 
     public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
@@ -67,10 +68,11 @@ internal class DemoClient : BaseApp
         _receivedSecurityCount++;
         m_logger.Info($"[{_receivedSecurityCount}/{ExpectedSecurityCount}] Received Security: {symbol}");
 
-        // Once we have all securities, request trades
-        if (_receivedSecurityCount >= ExpectedSecurityCount)
+        // Once we have all securities, request trades (only once per session)
+        if (_receivedSecurityCount >= ExpectedSecurityCount && !_hasSentTradeRequest)
         {
-            m_logger.Info($"Received all {ExpectedSecurityCount} securities - now requesting trades knownSecurities = {_knownSecurities.Count}");
+            _hasSentTradeRequest = true;
+            m_logger.Info($"Received all {ExpectedSecurityCount} securities - now requesting trades");
             await SendTradeCaptureRequest();
         }
     }
@@ -83,6 +85,12 @@ internal class DemoClient : BaseApp
 
     protected override async Task OnReady(IMessageView view)
     {
+        // Reset all state on each new session (reconnect scenario)
+        _receivedSecurityCount = 0;
+        _receivedTradeCount = 0;
+        _knownSecurities.Clear();
+        _hasSentTradeRequest = false;
+
         m_logger.Info("Session ready - requesting security definitions for market 20 (Precious Metals)");
 
         var sdr = new SecurityDefinitionRequest
