@@ -99,12 +99,42 @@ show_store_state() {
 }
 
 show_dry_run() {
-    local role="$1"  # --client or --server
+    local args="$1"  # e.g. "--client" or "--client --store store/initiator"
     local label="$2"
     echo "$label:"
-    dotnet run -- $role --store "$STORE_DIR" --dry-run 2>&1 | grep -E 'Sender|Target|Creation' || true
+    dotnet run -- $args --dry-run 2>&1 | grep -E 'Sender|Target|Creation' || true
 }
 
+# For seq-mismatch test (recovery mode uses subdirectories)
+get_client_sender_seq_recovery() {
+    cat "$STORE_DIR/initiator/FIX.5.0SP2-init-comp-accept-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
+}
+
+get_server_sender_seq_recovery() {
+    cat "$STORE_DIR/acceptor/FIX.5.0SP2-accept-comp-init-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
+}
+
+show_store_state_recovery() {
+    local label="$1"
+    print_step "$label"
+
+    if [ -f "$STORE_DIR/initiator/FIX.5.0SP2-init-comp-accept-comp.seqnums" ]; then
+        echo "Client (init-comp -> accept-comp):"
+        cat "$STORE_DIR/initiator/FIX.5.0SP2-init-comp-accept-comp.seqnums"
+        echo ""
+    else
+        echo "  (no client store file yet)"
+    fi
+
+    if [ -f "$STORE_DIR/acceptor/FIX.5.0SP2-accept-comp-init-comp.seqnums" ]; then
+        echo "Server (accept-comp -> init-comp):"
+        cat "$STORE_DIR/acceptor/FIX.5.0SP2-accept-comp-init-comp.seqnums"
+    else
+        echo "  (no server store file yet)"
+    fi
+}
+
+# For other tests (use store directly)
 get_client_sender_seq() {
     cat "$STORE_DIR/FIX.5.0SP2-init-comp-accept-comp.seqnums" 2>/dev/null | awk -F':' '{print $1}' | tr -d ' '
 }
@@ -190,9 +220,9 @@ test_seq_mismatch() {
 
     # Step 5: Verify truncation
     print_header "STEP 4: Verify State Before Recovery"
-    show_dry_run "--client" "Client store (truncated)"
+    show_dry_run "--client --store $STORE_DIR" "Client store (truncated)"
     echo ""
-    show_dry_run "--server" "Server store (unchanged - expects higher seq)"
+    show_dry_run "--server --store $STORE_DIR" "Server store (unchanged - expects higher seq)"
 
     # Step 6: Run with mismatch
     print_header "STEP 5: Run With Sequence Mismatch"
@@ -200,7 +230,8 @@ test_seq_mismatch() {
     print_info "Server should reject, client should retry with incrementing sequences..."
     echo ""
 
-    dotnet run -- recovery --store "$STORE_DIR" --timeout $SHORT_TIMEOUT 2>&1 | \
+    # Use longer timeout to allow multiple retry attempts
+    dotnet run -- recovery --store "$STORE_DIR" --timeout $LONG_TIMEOUT 2>&1 | \
         grep -E 'SESSION|MsgSeqNum too low|Logon rejected|retry|TX A seq|rejecting|Timeout|timed out' || true
 
     # Step 7: Verify recovery
