@@ -1,0 +1,365 @@
+PureFix Standalone Trade Capture Demo
+======================================
+Mode: skeleton client
+
+Client-only mode
+
+Session Configuration:
+  Config file:    /home/me/dev/cs/purefix-standalone-demo/bin/Debug/net9.0/Data/Session/test-qf52-initiator.json
+  BeginString:    FIX.5.0SP2
+  SenderCompID:   init-comp
+  TargetCompID:   accept-comp
+  Host:           localhost:2344
+  TLS Enabled:    False
+
+Store:  memory (from config)
+
+
+[GC] Monitor started at 2026-01-08 12:20:48 (reporting every 5 seconds)
+[GC] ──────────────────────────────────────────────────────────────────────────────────────
+[GC] Elapsed  │ Clock    │ Gen0 │ Gen1 │ Gen2 │ Heap (MB) │ Allocated (MB) │ Alloc Rate
+[GC] ──────────────────────────────────────────────────────────────────────────────────────
+Starting Client (skeleton)...
+  Client: init-comp -> accept-comp
+  Store: memory, ResetSeqNumFlag: True
+  SessionStoreFactory: MemorySessionStoreFactory
+  Store config dir: null
+  Timeout: 600 seconds
+[12:20:48.876] [INF] [1] TcpInitiatorConnector starts. ReconnectSeconds=10
+[12:20:48.888] [INF] [1] attempting to connect attempt 1
+[12:20:48.890] [INF] [1] connecting to 127.0.0.1:2344
+[12:20:48.895] [INF] [9] connected to endpoint, creating session.
+[12:20:48.897] [INF] [9] message count = 326, component count = 728, simple count = 6029
+[12:20:48.897] [INF] [9] running the session.
+[12:20:48.898] [INF] [9] Run begins
+[12:20:48.899] [INF] [9] Session store initialized: SenderSeqNum=1, TargetSeqNum=1
+[12:20:48.899] [INF] [9] OnRun MsgSeqNum = 1, LastPeerMsgSeqNum = 0
+[12:20:48.899] [INF] [9] reset from previous transport
+[12:20:48.899] [DBG] [9] initiator sending logon state = Idle
+[12:20:48.901] [INF] [9] sending logon.
+[12:20:48.906] [INF] [9] sending A, pos = 162, MsgSeqNum = 2
+[12:20:48.910] [INF] [9] [A,1] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000132|35=A|49=init-comp|56=accept-comp|34=1|50=SenderSubID|57=fix|52=20260108-12:20:48.902|98=0|108=30|141=Y|553=js-client|554=pwd-client|10=169|
+[12:20:48.911] [INF] [9] state transition: Idle -> InitiationLogonSent
+[12:20:48.913] [INF] [11] timer starting.
+[12:20:48.913] [INF] [9] Writer started timer and transport dispatchers.
+[12:20:48.914] [INF] [12] starting to relay transport to session.
+[12:20:48.914] [INF] [9] Reader is waiting on events.
+[12:20:48.935] [DBG] [13] OnRx 162
+8=FIX.5.0SP2|9=0000132|35=A|49=accept-comp|56=init-comp|34=1|50=SenderSubID|57=fix|52=20260108-12:20:48.929|98=0|108=30|141=Y|553=js-server|554=pwd-server|10=226|
+[12:20:48.938] [INF] [13] OnRx received 1 message
+[12:20:48.948] [INF] [13] Logon with ResetSeqNumFlag=Y, accepting regardless of sequence
+[12:20:48.950] [INF] [13] peerLogon Username=js-server, heartBtInt=30, peerCompId=accept-comp, resetSeqNumFlag=True
+[12:20:48.950] [INF] [13] Peer sent ResetSeqNumFlag=Y with SeqNum=1, weAlsoReset=True
+[12:20:48.950] [INF] [13] Reset complete: SenderSeqNum=2, TargetSeqNum=2, LastPeerMsgSeqNum=1
+[12:20:48.950] [INF] [13] [Skeleton Client] Logon accepted
+[12:20:48.951] [INF] [13] peerLogon onLogon returns True
+[12:20:48.951] [INF] [13] initiator receives logon response
+[12:20:48.951] [INF] [13] state transition: InitiationLogonSent -> InitiationLogonReceived
+[12:20:48.951] [INF] [13] system ready, inform app
+[12:20:48.951] [INF] [13] [Skeleton Client] Session ready - running in heartbeat-only mode
+[12:20:48.951] [INF] [13] OnRx return buffer 256
+[GC] 00:00:05 │ 12:20:53 │ +14  │ +10  │ +1   │    380.17 │         872.23 │  59658.0 KB/s
+[GC] 00:00:10 │ 12:20:58 │ +0   │ +0   │ +0   │    380.20 │         872.26 │      6.4 KB/s
+[GC] 00:00:15 │ 12:21:03 │ +0   │ +0   │ +0   │    380.23 │         872.27 │      3.2 KB/s
+[GC] 00:00:20 │ 12:21:05 │ +0   │ +0   │ +0   │    380.24 │         872.29 │      3.2 KB/s
+[GC] 00:00:25 │ 12:21:10 │ +0   │ +0   │ +0   │    380.26 │         872.31 │      4.3 KB/s
+[GC] 00:00:30 │ 12:21:15 │ +0   │ +0   │ +0   │    380.29 │         872.33 │      4.6 KB/s
+[12:21:18.912] [DBG] [14] sending heartbeat. state = InitiationLogonReceived
+[12:21:18.914] [INF] [14] sending 0, pos = 149, MsgSeqNum = 3
+[12:21:18.914] [INF] [14] [0,2] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8[12:21:18.915] [DBG] [11] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=2|50=SenderSubID|57=fix|52=20260108-12:21:18.914|112=he[12:21:18.998] [DBG] [13] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=2|50=SenderSubID|57=fix|52=20260108-12:21:18.997|112=heartbeat-01/08/2026 12:21:18|10=144|
+[12:21:18.998] [INF] [13] OnRx received 1 message
+[12:21:18.999] [INF] [13] state transition: InitiationLogonReceived -> ActiveNormalSession
+[12:21:18.999] [INF] [13] OnRx return buffer 256
+[GC] 00:00:35 │ 12:21:20 │ +0   │ +0   │ +0   │    380.34 │         872.39 │     11.8 KB/s
+[GC] 00:00:40 │ 12:21:25 │ +0   │ +0   │ +0   │    380.36 │         872.41 │      4.1 KB/s
+[GC] 00:00:45 │ 12:21:30 │ +0   │ +0   │ +0   │    380.40 │         872.45 │      7.5 KB/s
+[GC] 00:00:50 │ 12:21:34 │ +0   │ +0   │ +0   │    380.41 │         872.46 │      2.6 KB/s
+[GC] 00:00:55 │ 12:21:39 │ +0   │ +0   │ +0   │    380.43 │         872.48 │      4.0 KB/s
+[GC] 00:01:00 │ 12:21:44 │ +0   │ +0   │ +0   │    380.45 │         872.50 │      3.9 KB/s
+[12:21:48.981] [DBG] [13] sending heartbeat. state = ActiveNormalSession
+[12:21:48.982] [INF] [13] sending 0, pos = 149, MsgSeqNum = 4
+[12:21:48.982] [INF] [13] [0,3] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8[12:21:48.982] [DBG] [9] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=3|50=SenderSubID|57=fix|52=20260108-12:21:48.982|112=hea[12:21:49.072] [DBG] [13] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=3|50=SenderSubID|57=fix|52=20260108-12:21:49.071|112=heartbeat-01/08/2026 12:21:49|10=136|
+[12:21:49.072] [INF] [13] OnRx received 1 message
+[12:21:49.072] [INF] [13] OnRx return buffer 256
+[GC] 00:01:05 │ 12:21:49 │ +0   │ +0   │ +0   │    380.51 │         872.56 │     12.1 KB/s
+[GC] 00:01:10 │ 12:21:54 │ +0   │ +0   │ +0   │    380.53 │         872.57 │      2.9 KB/s
+[GC] 00:01:15 │ 12:21:59 │ +0   │ +0   │ +0   │    380.55 │         872.59 │      4.3 KB/s
+[GC] 00:01:20 │ 12:22:04 │ +0   │ +0   │ +0   │    380.57 │         872.62 │      5.4 KB/s
+[GC] 00:01:25 │ 12:22:09 │ +0   │ +0   │ +0   │    380.59 │         872.64 │      3.9 KB/s
+[GC] 00:01:30 │ 12:22:14 │ +0   │ +0   │ +0   │    380.62 │         872.66 │      5.1 KB/s
+[GC] 00:01:35 │ 12:22:16 │ +0   │ +0   │ +0   │    380.64 │         872.69 │      4.9 KB/s
+[12:22:19.072] [DBG] [14] sending heartbeat. state = ActiveNormalSession
+[12:22:19.072] [INF] [14] sending 0, pos = 149, MsgSeqNum = 5
+[12:22:19.072] [INF] [14] [0,4] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  [12:22:19.073] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=4|50=SenderSubID|57=fix|52=20260108-12:22:19.072|112=heart[12:22:19.159] [DBG] [13] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=4|50=SenderSubID|57=fix|52=20260108-12:22:19.159|112=heartbeat-01/08/2026 12:22:19|10=140|
+[12:22:19.160] [INF] [13] OnRx received 1 message
+[12:22:19.160] [INF] [13] OnRx return buffer 256
+[GC] 00:01:40 │ 12:22:21 │ +0   │ +0   │ +0   │    380.69 │         872.73 │     10.0 KB/s
+[GC] 00:01:45 │ 12:22:26 │ +0   │ +0   │ +0   │    380.71 │         872.75 │      4.1 KB/s
+[GC] 00:01:50 │ 12:22:32 │ +0   │ +0   │ +0   │    380.73 │         872.77 │      3.9 KB/s
+[GC] 00:01:55 │ 12:22:37 │ +0   │ +0   │ +0   │    380.76 │         872.80 │      5.7 KB/s
+[GC] 00:02:00 │ 12:22:42 │ +0   │ +0   │ +0   │    380.78 │         872.82 │      4.3 KB/s
+[GC] 00:02:05 │ 12:22:47 │ +0   │ +0   │ +0   │    380.79 │         872.84 │      3.4 KB/s
+[12:22:49.132] [DBG] [14] sending heartbeat. state = ActiveNormalSession
+[12:22:49.133] [INF] [14] sending 0, pos = 149, MsgSeqNum = 6
+[12:22:49.133] [INF] [14] [0,5] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  [12:22:49.134] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=5|50=SenderSubID|57=fix|52=20260108-12:22:49.133|112=heart[12:22:49.219] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=5|50=SenderSubID|57=fix|52=20260108-12:22:49.219|112=heartbeat-01/08/2026 12:22:49|10=144|
+[12:22:49.220] [INF] [14] OnRx received 1 message
+[12:22:49.220] [INF] [14] OnRx return buffer 256
+[GC] 00:02:10 │ 12:22:52 │ +0   │ +0   │ +0   │    380.85 │         872.89 │     11.0 KB/s
+[GC] 00:02:15 │ 12:22:57 │ +0   │ +0   │ +0   │    380.87 │         872.91 │      4.1 KB/s
+[GC] 00:02:20 │ 12:23:02 │ +0   │ +0   │ +0   │    380.90 │         872.94 │      5.8 KB/s
+[GC] 00:02:25 │ 12:23:07 │ +0   │ +0   │ +0   │    380.93 │         872.97 │      6.3 KB/s
+[GC] 00:02:30 │ 12:23:12 │ +0   │ +0   │ +0   │    380.94 │         872.99 │      3.2 KB/s
+[GC] 00:02:35 │ 12:23:17 │ +0   │ +0   │ +0   │    380.97 │         873.01 │      4.8 KB/s
+[12:23:19.165] [DBG] [14] sending heartbeat. state = ActiveNormalSession
+[12:23:19.165] [INF] [14] sending 0, pos = 149, MsgSeqNum = 7
+[12:23:19.165] [INF] [14] [0,6] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  [12:23:19.165] [DBG] [16] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=6|50=SenderSubID|57=fix|52=20260108-12:23:19.165|112=heart[12:23:19.253] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=6|50=SenderSubID|57=fix|52=20260108-12:23:19.252|112=heartbeat-01/08/2026 12:23:19|10=138|
+[12:23:19.253] [INF] [14] OnRx received 1 message
+[12:23:19.253] [INF] [14] OnRx return buffer 256
+[GC] 00:02:40 │ 12:23:22 │ +0   │ +0   │ +0   │    381.02 │         873.06 │      9.4 KB/s
+[GC] 00:02:45 │ 12:23:27 │ +0   │ +0   │ +0   │    381.04 │         873.08 │      4.7 KB/s
+[GC] 00:02:50 │ 12:23:30 │ +0   │ +0   │ +0   │    381.07 │         873.11 │      6.4 KB/s
+[GC] 00:02:55 │ 12:23:35 │ +0   │ +0   │ +0   │    381.09 │         873.13 │      3.1 KB/s
+[GC] 00:03:00 │ 12:23:40 │ +0   │ +0   │ +0   │    381.11 │         873.15 │      4.8 KB/s
+[GC] 00:03:05 │ 12:23:45 │ +0   │ +0   │ +0   │    381.13 │         873.17 │      3.2 KB/s
+[12:23:49.189] [DBG] [14] sending heartbeat. state = ActiveNormalSession
+[12:23:49.189] [INF] [14] sending 0, pos = 149, MsgSeqNum = 8
+[12:23:49.189] [INF] [14] [0,7] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  [12:23:49.190] [DBG] [16] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=7|50=SenderSubID|57=fix|52=20260108-12:23:49.189|112=heart[12:23:49.280] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=7|50=SenderSubID|57=fix|52=20260108-12:23:49.279|112=heartbeat-01/08/2026 12:23:49|10=154|
+[12:23:49.280] [INF] [14] OnRx received 1 message
+[12:23:49.280] [INF] [14] OnRx return buffer 256
+[GC] 00:03:10 │ 12:23:50 │ +0   │ +0   │ +0   │    381.18 │         873.22 │     11.1 KB/s
+[GC] 00:03:15 │ 12:23:55 │ +0   │ +0   │ +0   │    381.21 │         873.24 │      4.8 KB/s
+[GC] 00:03:20 │ 12:24:02 │ +0   │ +0   │ +0   │    381.23 │         873.27 │      4.7 KB/s
+[GC] 00:03:25 │ 12:24:07 │ +0   │ +0   │ +0   │    381.25 │         873.29 │      4.8 KB/s
+[GC] 00:03:30 │ 12:24:12 │ +0   │ +0   │ +0   │    381.28 │         873.31 │      4.7 KB/s
+[GC] 00:03:35 │ 12:24:13 │ +0   │ +0   │ +0   │    381.29 │         873.33 │      3.2 KB/s
+[GC] 00:03:40 │ 12:24:18 │ +0   │ +0   │ +0   │    381.32 │         873.35 │      4.8 KB/s
+[12:24:19.266] [DBG] [9] sending heartbeat. state = ActiveNormalSession
+[12:24:19.267] [INF] [9] sending 0, pos = 149, MsgSeqNum = 9
+[12:24:19.267] [INF] [9] [0,8] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8[12:24:19.267] [DBG] [18] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=8|50=SenderSubID|57=fix|52=20260108-12:24:19.266|112=he[12:24:19.351] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=8|50=SenderSubID|57=fix|52=20260108-12:24:19.350|112=heartbeat-01/08/2026 12:24:19|10=141|
+[12:24:19.351] [INF] [14] OnRx received 1 message
+[12:24:19.351] [INF] [14] OnRx return buffer 256
+[GC] 00:03:45 │ 12:24:23 │ +0   │ +0   │ +0   │    381.36 │         873.40 │      9.5 KB/s
+[GC] 00:03:50 │ 12:24:30 │ +0   │ +0   │ +0   │    381.39 │         873.42 │      4.8 KB/s
+[GC] 00:03:55 │ 12:24:35 │ +0   │ +0   │ +0   │    381.42 │         873.45 │      6.3 KB/s
+[GC] 00:04:00 │ 12:24:40 │ +0   │ +0   │ +0   │    381.43 │         873.47 │      3.2 KB/s
+[GC] 00:04:05 │ 12:24:45 │ +0   │ +0   │ +0   │    381.46 │         873.50 │      6.3 KB/s
+[12:24:49.292] [DBG] [14] sending heartbeat. state = ActiveNormalSession
+[12:24:49.293] [INF] [14] sending 0, pos = 149, MsgSeqNum = 10
+[12:24:49.293] [INF] [14] [0,9] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+[12:24:49.293] [DBG] [19] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=init-comp|56=accept-comp|34=9|50=SenderSubID|57=fix|52=20260108-12:24:49.292|112=hea[12:24:49.381] [DBG] [14] OnRx 149
+8=FIX.5.0SP2|9=0000119|35=0|49=accept-comp|56=init-comp|34=9|50=SenderSubID|57=fix|52=20260108-12:24:49.381|112=heartbeat-01/08/2026 12:24:49|10=152|
+[12:24:49.381] [INF] [14] OnRx received 1 message
+[12:24:49.381] [INF] [14] OnRx return buffer 256
+[GC] 00:04:10 │ 12:24:50 │ +0   │ +0   │ +0   │    381.51 │         873.55 │      9.6 KB/s
+[GC] 00:04:15 │ 12:24:55 │ +0   │ +0   │ +0   │    381.52 │         873.56 │      3.2 KB/s
+[GC] 00:04:20 │ 12:25:00 │ +0   │ +0   │ +0   │    381.56 │         873.59 │      6.4 KB/s
+[GC] 00:04:25 │ 12:25:05 │ +0   │ +0   │ +0   │    381.58 │         873.62 │      4.8 KB/s
+[GC] 00:04:30 │ 12:25:10 │ +0   │ +0   │ +0   │    381.59 │         873.63 │      3.1 KB/s
+[GC] 00:04:35 │ 12:25:15 │ +0   │ +0   │ +0   │    381.62 │         873.65 │      4.8 KB/s
+[12:25:19.338] [DBG] [9] sending heartbeat. state = ActiveNormalSession
+[12:25:19.338] [INF] [9] sending 0, pos = 150, MsgSeqNum = 11
+[12:25:19.338] [INF] [9] [0,10] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=[12:25:19.338] [DBG] [16] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=10|50=SenderSubID|57=fix|52=20260108-12:25:19.338|112=h[12:25:19.425] [DBG] [9] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=10|50=SenderSubID|57=fix|52=20260108-12:25:19.425|112=heartbeat-01/08/2026 12:25:19|10=179|
+[12:25:19.426] [INF] [9] OnRx received 1 message
+[12:25:19.426] [INF] [9] OnRx return buffer 256
+[GC] 00:04:40 │ 12:25:20 │ +0   │ +0   │ +0   │    381.67 │         873.71 │     11.0 KB/s
+[GC] 00:04:45 │ 12:25:25 │ +0   │ +0   │ +0   │    381.69 │         873.72 │      3.2 KB/s
+[GC] 00:04:50 │ 12:25:27 │ +0   │ +0   │ +0   │    381.72 │         873.75 │      6.3 KB/s
+[GC] 00:04:55 │ 12:25:32 │ +0   │ +0   │ +0   │    381.74 │         873.78 │      4.8 KB/s
+[GC] 00:05:00 │ 12:25:37 │ +0   │ +0   │ +0   │    381.77 │         873.80 │      4.8 KB/s
+[GC] 00:05:05 │ 12:25:42 │ +0   │ +0   │ +0   │    381.78 │         873.81 │      2.8 KB/s
+[GC] 00:05:10 │ 12:25:47 │ +0   │ +0   │ +0   │    381.80 │         873.84 │      4.8 KB/s
+[12:25:49.425] [DBG] [4] sending heartbeat. state = ActiveNormalSession
+[12:25:49.425] [INF] [4] sending 0, pos = 150, MsgSeqNum = 12
+[12:25:49.425] [INF] [4] [0,11] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.[12:25:49.425] [DBG] [21] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=11|50=SenderSubID|57=fix|52=20260108-12:25:49.425[12:25:49.514] [DBG] [14] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=11|50=SenderSubID|57=fix|52=20260108-12:25:49.513|112=heartbeat-01/08/2026 12:25:49|10=184|
+[12:25:49.514] [INF] [14] OnRx received 1 message
+[12:25:49.514] [INF] [14] OnRx return buffer 256
+[GC] 00:05:15 │ 12:25:52 │ +0   │ +0   │ +0   │    381.87 │         873.90 │     12.6 KB/s
+[GC] 00:05:20 │ 12:25:57 │ +0   │ +0   │ +0   │    381.88 │         873.92 │      3.2 KB/s
+[GC] 00:05:25 │ 12:26:02 │ +0   │ +0   │ +0   │    381.90 │         873.94 │      4.7 KB/s
+[GC] 00:05:30 │ 12:26:07 │ +0   │ +0   │ +0   │    381.93 │         873.96 │      4.8 KB/s
+[GC] 00:05:35 │ 12:26:12 │ +0   │ +0   │ +0   │    381.95 │         873.99 │      4.8 KB/s
+[GC] 00:05:40 │ 12:26:17 │ +0   │ +0   │ +0   │    381.97 │         874.01 │      4.7 KB/s
+[12:26:19.493] [DBG] [4] sending heartbeat. state = ActiveNormalSession
+[12:26:19.494] [INF] [4] sending 0, pos = 150, MsgSeqNum = 13
+[12:26:19.494] [INF] [4] [0,12] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP[12:26:19.494] [DBG] [22] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=12|50=SenderSubID|57=fix|52=20260108-12:26:19.[12:26:19.578] [DBG] [3] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=12|50=SenderSubID|57=fix|52=20260108-12:26:19.577|112=heartbeat-01/08/2026 12:26:19|10=191|
+[12:26:19.578] [INF] [3] OnRx received 1 message
+[12:26:19.578] [INF] [3] OnRx return buffer 256
+[GC] 00:05:45 │ 12:26:22 │ +0   │ +0   │ +0   │    382.02 │         874.05 │      9.5 KB/s
+[GC] 00:05:50 │ 12:26:25 │ +0   │ +0   │ +0   │    382.04 │         874.08 │      4.8 KB/s
+[GC] 00:05:55 │ 12:26:30 │ +0   │ +0   │ +0   │    382.08 │         874.11 │      7.1 KB/s
+[GC] 00:06:00 │ 12:26:35 │ +0   │ +0   │ +0   │    382.10 │         874.13 │      3.2 KB/s
+[GC] 00:06:05 │ 12:26:40 │ +0   │ +0   │ +0   │    382.13 │         874.16 │      6.3 KB/s
+[GC] 00:06:10 │ 12:26:45 │ +0   │ +0   │ +0   │    382.14 │         874.17 │      3.1 KB/s
+[12:26:49.539] [DBG] [3] sending heartbeat. state = ActiveNormalSession
+[12:26:49.539] [INF] [3] sending 0, pos = 150, MsgSeqNum = 14
+[12:26:49.539] [INF] [3] [0,13] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=00[12:26:49.540] [DBG] [24] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=13|50=SenderSubID|57=fix|52=20260108-12:[12:26:49.623] [DBG] [15] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=13|50=SenderSubID|57=fix|52=20260108-12:26:49.622|112=heartbeat-01/08/2026 12:26:49|10=189|
+[12:26:49.623] [INF] [15] OnRx received 1 message
+[12:26:49.623] [INF] [15] OnRx return buffer 256
+[GC] 00:06:15 │ 12:26:50 │ +0   │ +0   │ +0   │    382.20 │         874.23 │     11.1 KB/s
+[GC] 00:06:20 │ 12:26:54 │ +0   │ +0   │ +0   │    382.22 │         874.25 │      4.7 KB/s
+[GC] 00:06:25 │ 12:26:59 │ +0   │ +0   │ +0   │    382.24 │         874.27 │      4.8 KB/s
+[GC] 00:06:30 │ 12:27:04 │ +0   │ +0   │ +0   │    382.28 │         874.31 │      6.3 KB/s
+[GC] 00:06:35 │ 12:27:09 │ +0   │ +0   │ +0   │    382.28 │         874.31 │      1.6 KB/s
+[GC] 00:06:40 │ 12:27:14 │ +0   │ +0   │ +0   │    382.31 │         874.34 │      6.4 KB/s
+[GC] 00:06:45 │ 12:27:19 │ +0   │ +0   │ +0   │    382.33 │         874.36 │      3.1 KB/s
+[12:27:19.578] [DBG] [4] sending heartbeat. state = ActiveNormalSession
+[12:27:19.578] [INF] [4] sending 0, pos = 150, MsgSeqNum = 15
+[12:27:19.578] [INF] [4] [0,14] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=00001[12:27:19.579] [DBG] [25] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=14|50=SenderSubID|57=fix|52=20260108-[12:27:19.666] [DBG] [3] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=14|50=SenderSubID|57=fix|52=20260108-12:27:19.665|112=heartbeat-01/08/2026 12:27:19|10=193|
+[12:27:19.666] [INF] [3] OnRx received 1 message
+[12:27:19.666] [INF] [3] OnRx return buffer 256
+[GC] 00:06:50 │ 12:27:22 │ +0   │ +0   │ +0   │    382.38 │         874.41 │     10.9 KB/s
+[GC] 00:06:55 │ 12:27:27 │ +0   │ +0   │ +0   │    382.42 │         874.45 │      7.9 KB/s
+[GC] 00:07:00 │ 12:27:32 │ +0   │ +0   │ +0   │    382.44 │         874.47 │      3.2 KB/s
+[GC] 00:07:05 │ 12:27:37 │ +0   │ +0   │ +0   │    382.46 │         874.48 │      3.4 KB/s
+[GC] 00:07:10 │ 12:27:42 │ +0   │ +0   │ +0   │    382.48 │         874.51 │      4.8 KB/s
+[GC] 00:07:15 │ 12:27:47 │ +0   │ +0   │ +0   │    382.50 │         874.52 │      3.2 KB/s
+[12:27:49.666] [DBG] [16] sending heartbeat. state = ActiveNormalSession
+[12:27:49.666] [INF] [16] sending 0, pos = 150, MsgSeqNum = 16
+[12:27:49.666] [INF] [16] [0,15] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000120|[12:27:49.667] [DBG] [27] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=15|50=SenderSubID|57=fix|52=202601[12:27:49.864] [DBG] [16] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=15|50=SenderSubID|57=fix|52=20260108-12:27:49.864|112=heartbeat-01/08/2026 12:27:49|10=201|
+[12:27:49.864] [INF] [16] OnRx received 1 message
+[12:27:49.865] [INF] [16] OnRx return buffer 256
+[GC] 00:07:20 │ 12:27:50 │ +0   │ +0   │ +0   │    382.56 │         874.58 │     12.7 KB/s
+[GC] 00:07:25 │ 12:27:55 │ +0   │ +0   │ +0   │    382.58 │         874.61 │      4.7 KB/s
+[GC] 00:07:30 │ 12:28:00 │ +0   │ +0   │ +0   │    382.61 │         874.63 │      4.8 KB/s
+[GC] 00:07:35 │ 12:28:05 │ +0   │ +0   │ +0   │    382.63 │         874.65 │      4.8 KB/s
+[GC] 00:07:40 │ 12:28:10 │ +0   │ +0   │ +0   │    382.65 │         874.67 │      3.1 KB/s
+[GC] 00:07:45 │ 12:28:15 │ +0   │ +0   │ +0   │    382.67 │         874.69 │      4.8 KB/s
+[GC] 00:07:50 │ 12:28:18 │ +0   │ +0   │ +0   │    382.69 │         874.71 │      3.2 KB/s
+[12:28:19.680] [DBG] [3] sending heartbeat. state = ActiveNormalSession
+[12:28:19.680] [INF] [3] sending 0, pos = 150, MsgSeqNum = 17
+[12:28:19.681] [INF] [3] [0,16] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000120|35=[12:28:19.681] [DBG] [26] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=16|50=SenderSubID|57=fix|52=202[12:28:19.865] [DBG] [3] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=16|50=SenderSubID|57=fix|52=20260108-12:28:19.864|112=heartbeat-01/08/2026 12:28:19|10=198|
+[12:28:19.865] [INF] [3] OnRx received 1 message
+[12:28:19.865] [INF] [3] OnRx return buffer 256
+[GC] 00:07:55 │ 12:28:23 │ +0   │ +0   │ +0   │    382.75 │         874.77 │     12.7 KB/s
+[GC] 00:08:00 │ 12:28:28 │ +0   │ +0   │ +0   │    382.78 │         874.80 │      6.3 KB/s
+[GC] 00:08:05 │ 12:28:33 │ +0   │ +0   │ +0   │    382.79 │         874.81 │      1.6 KB/s
+[GC] 00:08:10 │ 12:28:38 │ +0   │ +0   │ +0   │    382.81 │         874.83 │      4.8 KB/s
+[GC] 00:08:15 │ 12:28:43 │ +0   │ +0   │ +0   │    382.83 │         874.86 │      4.8 KB/s
+[GC] 00:08:20 │ 12:28:46 │ +0   │ +0   │ +0   │    382.86 │         874.88 │      4.8 KB/s
+[12:28:49.690] [DBG] [3] sending heartbeat. state = ActiveNormalSession
+[12:28:49.690] [INF] [3] sending 0, pos = 150, MsgSeqNum = 18
+[12:28:49.690] [INF] [3] [0,17] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000120|35=0|49=i[12:28:49.691] [DBG] [28] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=17|50=SenderSubID|57=fix|[12:28:49.877] [DBG] [3] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=17|50=SenderSubID|57=fix|52=20260108-12:28:49.876|112=heartbeat-01/08/2026 12:28:49|10=208|
+[12:28:49.877] [INF] [3] OnRx received 1 message
+[12:28:49.877] [INF] [3] OnRx return buffer 256
+[GC] 00:08:25 │ 12:28:51 │ +0   │ +0   │ +0   │    382.91 │         874.93 │     11.1 KB/s
+[GC] 00:08:30 │ 12:28:56 │ +0   │ +0   │ +0   │    382.94 │         874.96 │      6.4 KB/s
+[GC] 00:08:35 │ 12:29:01 │ +0   │ +0   │ +0   │    382.96 │         874.98 │      3.1 KB/s
+[GC] 00:08:40 │ 12:29:06 │ +0   │ +0   │ +0   │    382.98 │         875.00 │      4.8 KB/s
+[GC] 00:08:45 │ 12:29:11 │ +0   │ +0   │ +0   │    383.00 │         875.02 │      3.2 KB/s
+[GC] 00:08:50 │ 12:29:15 │ +0   │ +0   │ +0   │    383.01 │         875.03 │      3.1 KB/s
+[12:29:19.720] [DBG] [3] sending heartbeat. state = ActiveNormalSession
+[12:29:19.720] [INF] [3] sending 0, pos = 150, MsgSeqNum = 19
+[12:29:19.721] [INF] [3] [0,18] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000120|35=0|49=init-co[12:29:19.721] [DBG] [28] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=18|50=SenderSubID|5[12:29:19.907] [DBG] [16] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=18|50=SenderSubID|57=fix|52=20260108-12:29:19.906|112=heartbeat-01/08/2026 12:29:19|10=199|
+[12:29:19.907] [INF] [16] OnRx received 1 message
+[12:29:19.907] [INF] [16] OnRx return buffer 256
+[GC] 00:08:55 │ 12:29:20 │ +0   │ +0   │ +0   │    383.09 │         875.11 │     15.6 KB/s
+[GC] 00:09:00 │ 12:29:25 │ +0   │ +0   │ +0   │    383.11 │         875.13 │      3.2 KB/s
+[GC] 00:09:05 │ 12:29:30 │ +0   │ +0   │ +0   │    383.14 │         875.16 │      6.3 KB/s
+[GC] 00:09:10 │ 12:29:35 │ +0   │ +0   │ +0   │    383.15 │         875.17 │      3.2 KB/s
+[GC] 00:09:15 │ 12:29:40 │ +0   │ +0   │ +0   │    383.18 │         875.20 │      4.8 KB/s
+[GC] 00:09:20 │ 12:29:42 │ +0   │ +0   │ +0   │    383.20 │         875.22 │      4.7 KB/s
+[GC] 00:09:25 │ 12:29:47 │ +0   │ +0   │ +0   │    383.22 │         875.24 │      4.8 KB/s
+[12:29:49.809] [DBG] [16] sending heartbeat. state = ActiveNormalSession
+[12:29:49.809] [INF] [16] sending 0, pos = 150, MsgSeqNum = 20
+[12:29:49.809] [INF] [16] [0,19] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+8=FIX.5.0SP2|9=0000120|35=0|49=init-co[12:29:49.810] [DBG] [28] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=init-comp|56=accept-comp|34=19|50=SenderSubID|5[12:29:49.995] [DBG] [16] OnRx 150
+8=FIX.5.0SP2|9=0000120|35=0|49=accept-comp|56=init-comp|34=19|50=SenderSubID|57=fix|52=20260108-12:29:49.994|112=heartbeat-01/08/2026 12:29:49|10=213|
+[12:29:49.995] [INF] [16] OnRx received 1 message
+[12:29:49.995] [INF] [16] OnRx return buffer 256
+[GC] 00:09:30 │ 12:29:52 │ +0   │ +0   │ +0   │    383.28 │         875.29 │      9.7 KB/s
+[GC] 00:09:35 │ 12:29:57 │ +0   │ +0   │ +0   │    383.30 │         875.31 │      4.8 KB/s
+[GC] 00:09:40 │ 12:30:02 │ +0   │ +0   │ +0   │    383.31 │         875.33 │      3.2 KB/s
+[GC] 00:09:45 │ 12:30:07 │ +0   │ +0   │ +0   │    383.35 │         875.37 │      7.9 KB/s
+[12:30:08.341] [INF] [18] read 0 from transport, exit
+[12:30:08.341] [INF] [18] transport has ended. Connected=True, cancelled=False, terminated=True
+[12:30:08.342] [INF] [18] Transport dead, signaling session to stop.
+[12:30:08.342] [INF] [17] Reader received TransportDead signal, stopping session.
+[12:30:08.342] [INF] [17] stop: kill transport ActiveNormalSession
+[12:30:08.342] [INF] [17] stop: emit error System.IO.IOException: Transport disconnected
+[12:30:08.344] [INF] [17] state transition: ActiveNormalSession -> Stopped
+[12:30:08.344] [INF] [17] [Skeleton Client] Session stopped
+[12:30:08.344] [INF] [17] stop: cancel token source.
+[12:30:08.351] [INF] [17] timer cancelled.
+[12:30:08.351] [INF] [17] timer exiting.
+[12:30:08.351] [INF] [17] Reader is exiting.
+[12:30:08.351] [INF] [17] Run ends
+[12:30:08.351] [INF] [17] session has ended.
+[12:30:08.351] [INF] [17] waiting 10s before reconnection attempt
+[GC] 00:09:50 │ 12:30:11 │ +0   │ +0   │ +0   │    383.45 │         875.47 │     20.7 KB/s
+[GC] 00:09:55 │ 12:30:16 │ +0   │ +0   │ +0   │    383.45 │         875.47 │      0.0 KB/s
+[12:30:16.878] [INF] [17] attempting to connect attempt 1
+[12:30:16.878] [INF] [17] connecting to 127.0.0.1:2344
+[12:30:16.882] [ERR] [17] Connection refused
+System.Net.Sockets.SocketException (111): Connection refused
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.ThrowException(SocketError error, CancellationToken cancellationToken)
+   at System.Net.Sockets.Socket.AwaitableSocketAsyncEventArgs.System.Threading.Tasks.Sources.IValueTaskSource.GetResult(Int16 token)
+   at System.Net.Sockets.Socket.<ConnectAsync>g__WaitForConnectWithCancellation|285_0(AwaitableSocketAsyncEventArgs saea, ValueTask connectTask, CancellationToken cancellationToken)
+   at PureFix.Transport.SocketTransport.ClientSocketTransport.Start(CancellationToken cancellationToken) in /home/me/dev/cs/cspurefix/PureFix.Transport/SocketTransport/ClientSocketTransport.cs:line 31
+   at PureFix.Transport.SocketTransport.TcpInitiatorConnector.Start(CancellationToken cancellationToken) in /home/me/dev/cs/cspurefix/PureFix.Transport/SocketTransport/TcpInitiatorConnector.cs:line 51
+[12:30:16.884] [INF] [17] waiting 10s for reconnection attempt
+[GC] 00:10:00 │ 12:30:21 │ +0   │ +0   │ +0   │    383.56 │         875.57 │     20.8 KB/s
+
+Client timed out after 600 seconds.
+
+[GC] ═══════════════════════════════════════════════════════════════════════
+[GC] Summary
+[GC] ═══════════════════════════════════════════════════════════════════════
+[GC]   Runtime:            00:10:00.613
+[GC]   Total Collections:  Gen0=44, Gen1=32, Gen2=6
+[GC]   Final Heap Size:    383.57 MB
+[GC]   Total Allocated:    875.59 MB
+[GC]   Avg Alloc Rate:     1492.8 KB/s
+[GC]   High Memory Load:   72387 MB threshold
+[GC]   Heap Size (Commit): 450.11 MB
+[GC]   Fragmented Bytes:   72039.9 KB
+[GC]   Pinned Objects:     0
+[GC] ═══════════════════════════════════════════════════════════════════════
+
+Client session ended.
