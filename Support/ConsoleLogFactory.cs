@@ -67,16 +67,19 @@ public class ConsoleLogFactory : ILogFactory
         public void Debug<T>(string template, T arg) => logger.Debug(template, arg);
         public void Debug<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Debug(template, arg1, arg2);
         public void Debug<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Debug(template, arg1, arg2, arg3);
+        public void DebugV(string template, params object?[] args) => logger.Debug(template, args);
 
         public void Info(string message) => logger.Information(message);
         public void Info<T>(string template, T arg) => logger.Information(template, arg);
         public void Info<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Information(template, arg1, arg2);
         public void Info<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Information(template, arg1, arg2, arg3);
+        public void InfoV(string template, params object?[] args) => logger.Information(template, args);
 
         public void Warn(string message) => logger.Warning(message);
         public void Warn<T>(string template, T arg) => logger.Warning(template, arg);
         public void Warn<T1, T2>(string template, T1 arg1, T2 arg2) => logger.Warning(template, arg1, arg2);
         public void Warn<T1, T2, T3>(string template, T1 arg1, T2 arg2, T3 arg3) => logger.Warning(template, arg1, arg2, arg3);
+        public void WarnV(string template, params object?[] args) => logger.Warning(template, args);
 
         public void Error(string message) => logger.Error(message);
         public void Error(Exception ex) => logger.Error(ex, ex.Message);
