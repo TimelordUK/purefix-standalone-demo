@@ -1,0 +1,222 @@
+[19:13:50.881] [DBG] [13] Message received in sequence: seq=567, expected now=568
+[19:13:50.881] [DBG] [13] OnRx return buffer 256
+[19:13:53.710] [INF] [18] Sending unsolicited batch #3346 (2 trades)
+[19:13:53.710] [INF] [18] sending AE, pos = 234, MsgSeqNum = 6715
+[19:13:53.711] [INF] [18] [AE,6714] store state FixMsgStoreState { Length = 6703, FirstSeq = 2, LastSeq = 6714, ID = accept-comp }
+[19:13:53.711] [INF] [18] sending AE, pos = 239, MsgSeqNum = 6716
+[19:13:53.711] [INF] [18] [AE,6715] store state FixMsgStoreState { Length = 6704, FirstSeq = 2, LastSeq = 6715, ID = accept-comp }
+[19:13:58.710] [INF] [13] Sending unsolicited batch #3347 (3 trades)
+[19:13:58.711] [INF] [13] sending AE, pos = 234, MsgSeqNum = 6717
+[19:13:58.721] [INF] [13] [AE,6716] store state FixMsgStoreState { Length = 6705, FirstSeq = 2, LastSeq = 6716, ID = accept-comp }
+[19:13:58.722] [INF] [13] sending AE, pos = 238, MsgSeqNum = 6718
+[19:13:58.722] [INF] [13] [AE,6717] store state FixMsgStoreState { Length = 6706, FirstSeq = 2, LastSeq = 6717, ID = accept-comp }
+[19:13:58.723] [INF] [13] sending AE, pos = 242, MsgSeqNum = 6719
+[19:13:58.724] [INF] [13] [AE,6718] store state FixMsgStoreState { Length = 6707, FirstSeq = 2, LastSeq = 6718, ID = accept-comp }
+[19:14:03.712] [INF] [13] Sending unsolicited batch #3348 (1 trades)
+[19:14:03.712] [INF] [13] sending AE, pos = 234, MsgSeqNum = 6720
+[19:14:03.712] [INF] [13] [AE,6719] store state FixMsgStoreState { Length = 6708, FirstSeq = 2, LastSeq = 6719, ID = accept-comp }
+[19:14:08.711] [INF] [16] Sending unsolicited batch #3349 (2 trades)
+[19:14:08.712] [INF] [16] sending AE, pos = 235, MsgSeqNum = 6721
+[19:14:08.712] [INF] [16] [AE,6720] store state FixMsgStoreState { Length = 6709, FirstSeq = 2, LastSeq = 6720, ID = accept-comp }
+[19:14:08.714] [INF] [16] sending AE, pos = 239, MsgSeqNum = 6722
+[19:14:08.714] [INF] [16] [AE,6721] store state FixMsgStoreState { Length = 6710, FirstSeq = 2, LastSeq = 6721, ID = accept-comp }
+[19:14:14.312] [INF] [27] Sending unsolicited batch #3350 (3 trades)
+[19:14:14.313] [INF] [27] sending AE, pos = 234, MsgSeqNum = 6723
+[19:14:14.313] [INF] [27] [AE,6722] store state FixMsgStoreState { Length = 6711, FirstSeq = 2, LastSeq = 6722, ID = accept-comp }
+[19:14:14.317] [INF] [27] sending AE, pos = 239, MsgSeqNum = 6724
+[19:14:14.318] [INF] [27] [AE,6723] store state FixMsgStoreState { Length = 6712, FirstSeq = 2, LastSeq = 6723, ID = accept-comp }
+[19:14:14.320] [INF] [27] sending AE, pos = 242, MsgSeqNum = 6725
+[19:14:14.320] [INF] [27] [AE,6724] store state FixMsgStoreState { Length = 6713, FirstSeq = 2, LastSeq = 6724, ID = accept-comp }
+[19:44:12.553] [INF] [17] Sending unsolicited batch #3351 (1 trades)
+[19:44:12.554] [INF] [17] sending AE, pos = 235, MsgSeqNum = 6726
+[19:44:12.577] [INF] [17] [AE,6725] store state FixMsgStoreState { Length = 6714, FirstSeq = 2, LastSeq = 6725, ID = accept-comp }
+[19:44:12.577] [DBG] [17] sending test req. state = "ActiveNormalSession"
+[19:44:12.578] [INF] [17] state transition: "ActiveNormalSession" -> "AwaitingProcessingResponseToTestRequest"
+[19:44:12.664] [INF] [13] Sending unsolicited batch #3352 (2 trades)
+[19:44:12.664] [INF] [13] sending AE, pos = 234, MsgSeqNum = 6727
+[19:44:12.665] [INF] [13] [AE,6726] store state FixMsgStoreState { Length = 6715, FirstSeq = 2, LastSeq = 6726, ID = accept-comp }
+[19:44:12.665] [INF] [13] sending AE, pos = 238, MsgSeqNum = 6728
+[19:44:12.666] [INF] [13] [AE,6727] store state FixMsgStoreState { Length = 6716, FirstSeq = 2, LastSeq = 6727, ID = accept-comp }
+[19:44:12.963] [INF] [17] sending 1, pos = 151, MsgSeqNum = 6729
+[19:44:12.973] [INF] [17] [1,6726] store state FixMsgStoreState { Length = 6716, FirstSeq = 2, LastSeq = 6727, ID = accept-comp }
+[19:44:12.974] [INF] [17] Timeout recovery attempt 1/3
+[19:44:12.974] [INF] [17] state transition: "AwaitingProcessingResponseToTestRequest" -> "ActiveNormalSession"
+[19:44:12.974] [DBG] [17] OnRx 150
+[19:44:12.976] [INF] [17] OnRx received 1 message
+[19:44:12.976] [INF] [17] [568,1]: [0] 8 (BeginString) = FIX.5.0SP2 [FIX.5.0SP2], [1] 9 (BodyLength) = 0000120
+[2] 35 (MsgType) = 1 [TestRequest], [3] 49 (SenderCompID) = init-comp
+[4] 56 (TargetCompID) = accept-comp, [5] 34 (MsgSeqNum) = 568
+[6] 50 (SenderSubID) = SenderSubID, [7] 57 (TargetSubID) = fix
+[8] 52 (SendingTime) = 20260119-19:44:12.663, [9] 112 (TestReqID) = test-req-01/19/2026 19:44:12
+[10] 10 (CheckSum) = 133
+[19:44:12.977] [DBG] [17] CheckSeqNo: 1 seq=568, expected=568 (delta=1)
+[19:44:12.992] [DBG] [17] Message received in sequence: seq=568, expected now=569
+[19:44:12.992] [DBG] [17] Timeout recovery counter reset
+[19:44:12.993] [INF] [17] responding to test request - send heartbeat
+[19:44:12.993] [INF] [17] sending 0, pos = 151, MsgSeqNum = 6730
+[19:44:12.994] [INF] [17] [0,6729] store state FixMsgStoreState { Length = 6716, FirstSeq = 2, LastSeq = 6727, ID = accept-comp }
+[19:44:13.154] [DBG] [17] OnRx return buffer 256
+[19:44:15.790] [INF] [13] Sending unsolicited batch #3353 (3 trades)
+[19:44:15.790] [INF] [13] sending AE, pos = 235, MsgSeqNum = 6731
+[19:44:15.791] [INF] [13] [AE,6730] store state FixMsgStoreState { Length = 6717, FirstSeq = 2, LastSeq = 6730, ID = accept-comp }
+[19:44:15.791] [INF] [13] sending AE, pos = 238, MsgSeqNum = 6732
+[19:44:15.791] [INF] [13] [AE,6731] store state FixMsgStoreState { Length = 6718, FirstSeq = 2, LastSeq = 6731, ID = accept-comp }
+[19:44:15.791] [INF] [13] sending AE, pos = 240, MsgSeqNum = 6733
+[19:44:15.792] [INF] [13] [AE,6732] store state FixMsgStoreState { Length = 6719, FirstSeq = 2, LastSeq = 6732, ID = accept-comp }
+[19:44:20.789] [INF] [17] Sending unsolicited batch #3354 (1 trades)
+[19:44:20.790] [INF] [17] sending AE, pos = 234, MsgSeqNum = 6734
+[19:44:20.790] [INF] [17] [AE,6733] store state FixMsgStoreState { Length = 6720, FirstSeq = 2, LastSeq = 6733, ID = accept-comp }
+[19:44:21.023] [DBG] [17] OnRx 174
+[19:44:21.029] [INF] [17] OnRx received 1 message
+[19:44:21.038] [INF] [17] [569,3]: [0] 8 (BeginString) = FIX.5.0SP2 [FIX.5.0SP2], [1] 9 (BodyLength) = 0000144
+[2] 35 (MsgType) = 3 [Reject], [3] 49 (SenderCompID) = init-comp
+[4] 56 (TargetCompID) = accept-comp, [5] 34 (MsgSeqNum) = 569
+[6] 50 (SenderSubID) = SenderSubID, [7] 57 (TargetSubID) = fix
+[8] 52 (SendingTime) = 20260119-19:44:21.020, [9] 45 (RefSeqNum) = 6726
+[10] 372 (RefMsgType) = 1, [11] 373 (SessionRejectReason) = 5 [ValueIsIncorrect]
+[12] 58 (Text) = MsgSeqNum too low, expecting 6728, [13] 10 (CheckSum) = 065
+[19:44:21.041] [DBG] [17] CheckSeqNo: 3 seq=569, expected=569 (delta=1)
+[19:44:21.043] [DBG] [17] Message received in sequence: seq=569, expected now=570
+[19:44:21.053] [INF] [17] peer rejects RefSeqNum=6726, RefMsgType=1, Reason=5
+[19:44:21.060] [INF] [17] reject text: 'MsgSeqNum too low, expecting 6728'
+[19:44:21.060] [DBG] [17] OnRx return buffer 256
+[19:44:25.789] [INF] [28] Sending unsolicited batch #3355 (2 trades)
+[19:44:25.790] [INF] [28] sending AE, pos = 235, MsgSeqNum = 6735
+[19:44:25.797] [INF] [28] [AE,6734] store state FixMsgStoreState { Length = 6721, FirstSeq = 2, LastSeq = 6734, ID = accept-comp }
+[19:44:25.797] [INF] [28] sending AE, pos = 239, MsgSeqNum = 6736
+[19:44:25.798] [INF] [28] [AE,6735] store state FixMsgStoreState { Length = 6722, FirstSeq = 2, LastSeq = 6735, ID = accept-comp }
+[19:44:30.790] [INF] [3] Sending unsolicited batch #3356 (3 trades)
+[19:44:30.790] [INF] [3] sending AE, pos = 235, MsgSeqNum = 6737
+[19:44:30.792] [INF] [3] [AE,6736] store state FixMsgStoreState { Length = 6723, FirstSeq = 2, LastSeq = 6736, ID = accept-comp }
+[19:44:30.793] [INF] [3] sending AE, pos = 237, MsgSeqNum = 6738
+[19:44:30.793] [INF] [3] [AE,6737] store state FixMsgStoreState { Length = 6724, FirstSeq = 2, LastSeq = 6737, ID = accept-comp }
+[19:44:30.793] [INF] [3] sending AE, pos = 243, MsgSeqNum = 6739
+[19:44:30.794] [INF] [3] [AE,6738] store state FixMsgStoreState { Length = 6725, FirstSeq = 2, LastSeq = 6738, ID = accept-comp }
+[19:44:31.749] [INF] [3] received a new connection - create a transport. remote = 127.0.0.1:60328
+[19:44:31.754] [INF] [3] message count = 326, component count = 728, simple count = 6029
+[19:44:31.754] [INF] [3] Run begins
+[19:44:31.762] [INF] [3] Register called for SessionId=FIX.5.0SP2-accept-comp-init-comp, ActiveSessions=1
+[19:44:31.766] [INF] [3] FOUND EXISTING SESSION for FIX.5.0SP2-accept-comp-init-comp - this is a reconnection scenario!
+[19:44:31.766] [INF] [3] Stopping old session to prevent stale transport writes...
+[19:44:31.766] [INF] [3] RequestStop: Replaced by new connection - stopping old session with stale transport
+[19:44:31.767] [INF] [3] stop: kill transport "ActiveNormalSession"
+[19:44:31.768] [INF] [3] stop: emit error System.InvalidOperationException: Replaced by new connection - stopping old session with stale transport
+[19:44:31.768] [INF] [3] state transition: "ActiveNormalSession" -> "Stopped"
+[19:44:31.768] [INF] [3] Session stopping - unregistering from registry: FIX.5.0SP2-accept-comp-init-comp
+[19:44:31.769] [INF] [3] Unregister called for SessionId=FIX.5.0SP2-accept-comp-init-comp
+[19:44:31.772] [INF] [3] Successfully unregistered session: FIX.5.0SP2-accept-comp-init-comp, RemainingActiveSessions=0
+[19:44:31.773] [INF] [3] Stopping unsolicited trade timer
+[19:44:31.802] [INF] [3] timer cancelled.
+[19:44:31.803] [INF] [3] timer exiting.
+[19:44:31.803] [INF] [3] Server stopped.
+[19:44:31.803] [INF] [3] stop: cancel token source.
+[19:44:31.817] [INF] [3] timer cancelled.
+[19:44:31.817] [INF] [3] timer exiting.
+[19:44:31.818] [INF] [3] Old session stop requested, registering new session
+[19:44:31.818] [INF] [3] No existing session found - registering new session: FIX.5.0SP2-accept-comp-init-comp
+[19:44:31.818] [INF] [3] Register complete for FIX.5.0SP2-accept-comp-init-comp: StoppedOldSession=true, TotalActiveSessions=1
+[19:44:31.818] [INF] [17] Reader cancelled.
+[19:44:31.820] [INF] [3] Session registry stopped previous session for FIX.5.0SP2-accept-comp-init-comp
+[19:44:31.820] [INF] [17] Reader is exiting.
+[19:44:31.820] [INF] [3] Initialized from store: NextSender=1, ExpectedTarget=1
+[19:44:31.820] [INF] [17] Run ends
+[19:44:31.821] [INF] [3] Session store initialized: NextSender=1, ExpectedTarget=1
+[19:44:31.821] [INF] [3] OnRun MsgSeqNum = 1, LastPeerMsgSeqNum = 0
+[19:44:31.821] [INF] [3] reset from previous transport
+[19:44:31.821] [DBG] [3] acceptor waits for logon state = "Idle"
+[19:44:31.821] [INF] [3] state transition: "Idle" -> "WaitingForALogon"
+[19:44:31.830] [INF] [20] timer starting.
+[19:44:31.837] [INF] [3] Writer started timer and transport dispatchers.
+[19:44:31.838] [INF] [3] Reader is waiting on events.
+[19:44:31.837] [INF] [23] starting to relay transport to session.
+[19:44:31.847] [DBG] [3] OnRx 162
+[19:44:31.850] [INF] [3] OnRx received 1 message
+[19:44:31.852] [INF] [3] [1,A]: [0] 8 (BeginString) = FIX.5.0SP2 [FIX.5.0SP2], [1] 9 (BodyLength) = 0000132
+[2] 35 (MsgType) = A [Logon], [3] 49 (SenderCompID) = init-comp
+[4] 56 (TargetCompID) = accept-comp, [5] 34 (MsgSeqNum) = 1
+[6] 50 (SenderSubID) = SenderSubID, [7] 57 (TargetSubID) = fix
+[8] 52 (SendingTime) = 20260119-19:44:31.769, [9] 98 (EncryptMethod) = 0 [None]
+[10] 108 (HeartBtInt) = 30, [11] 141 (ResetSeqNumFlag) = Y [Yes]
+[12] 553 (Username) = js-client, [13] 554 (Password) = pwd-client
+[14] 10 (CheckSum) = 187
+[19:44:31.856] [INF] [3] Logon with ResetSeqNumFlag=Y, accepting regardless of sequence
+[19:44:31.862] [INF] [3] peerLogon Username=js-client, heartBtInt=30, peerCompId=init-comp, resetSeqNumFlag=True
+[19:44:31.863] [INF] [3] Peer sent ResetSeqNumFlag=Y with SeqNum=1, weAlsoReset=true
+[19:44:31.863] [INF] [3] HandlePeerReset: peerSeq=1, weAlsoReset=true
+[19:44:31.863] [INF] [3] HandlePeerReset complete: Sender=1, ExpectedTarget=2
+[19:44:31.864] [INF] [3] Clearing recovery store for ResetSeqNumFlag
+[19:44:31.866] [INF] [3] Reset complete: EncoderSeqNum=1, ExpectedTarget=2, LastProcessedPeer=1
+[19:44:31.866] [INF] [3] Client logging in: js-client
+[19:44:31.866] [INF] [3] peerLogon onLogon returns true
+[19:44:31.867] [INF] [3] state transition: "WaitingForALogon" -> "InitiationLogonResponse"
+[19:44:31.867] [INF] [3] acceptor responds to logon request
+[19:44:31.867] [INF] [3] sending logon.
+[19:44:31.867] [INF] [3] sending A, pos = 162, MsgSeqNum = 2
+[19:44:31.868] [INF] [3] [A,1] store state FixMsgStoreState { Length = 0, FirstSeq = 0, LastSeq = 0, ID =  }
+[19:44:31.868] [INF] [3] system ready, inform app
+[19:44:31.868] [INF] [3] Server session ready - waiting for trade requests
+[19:44:31.868] [DBG] [3] OnRx return buffer 256
+[19:44:31.879] [DBG] [17] OnRx 143
+[19:44:31.881] [INF] [17] OnRx received 1 message
+[19:44:31.887] [INF] [17] [2,c]: [0] 8 (BeginString) = FIX.5.0SP2 [FIX.5.0SP2], [1] 9 (BodyLength) = 0000113
+[2] 35 (MsgType) = c [SecurityDefinitionRequest], [3] 49 (SenderCompID) = init-comp
+[4] 56 (TargetCompID) = accept-comp, [5] 34 (MsgSeqNum) = 2
+[6] 50 (SenderSubID) = SenderSubID, [7] 57 (TargetSubID) = fix
+[8] 52 (SendingTime) = 20260119-19:44:31.877, [9] 320 (SecurityReqID) = sec-req-1
+[10] 321 (SecurityRequestType) = 9 [MarketIdOrMarketId], [11] 1301 (MarketID) = 20
+[12] 10 (CheckSum) = 179
+[19:44:31.889] [DBG] [17] CheckSeqNo: c seq=2, expected=2 (delta=1)
+[19:44:31.889] [DBG] [17] Message received in sequence: seq=2, expected now=3
+[19:44:31.889] [INF] [17] ascii forwarding msgType = 'c' to application
+[19:44:31.889] [INF] [17] state transition: "InitiationLogonResponse" -> "ActiveNormalSession"
+[19:44:31.896] [INF] [17] Received security definition request: sec-req-1, MarketID=20
+[19:44:31.898] [INF] [17] sending d, pos = 208, MsgSeqNum = 3
+[19:44:31.899] [INF] [17] [d,2] store state FixMsgStoreState { Length = 1, FirstSeq = 2, LastSeq = 2, ID = accept-comp }
+[19:44:31.900] [INF] [17] Sent security definition: Gold
+[19:44:31.900] [INF] [17] sending d, pos = 212, MsgSeqNum = 4
+[19:44:31.901] [INF] [17] [d,3] store state FixMsgStoreState { Length = 2, FirstSeq = 2, LastSeq = 3, ID = accept-comp }
+[19:44:31.901] [INF] [17] Sent security definition: Silver
+[19:44:31.901] [INF] [17] sending d, pos = 216, MsgSeqNum = 5
+[19:44:31.902] [INF] [17] [d,4] store state FixMsgStoreState { Length = 3, FirstSeq = 2, LastSeq = 4, ID = accept-comp }
+[19:44:31.902] [INF] [17] Sent security definition: Platinum
+[19:44:31.902] [INF] [17] sending d, pos = 212, MsgSeqNum = 6
+[19:44:31.902] [INF] [17] [d,5] store state FixMsgStoreState { Length = 4, FirstSeq = 2, LastSeq = 5, ID = accept-comp }
+[19:44:31.903] [INF] [17] Sent security definition: Copper
+[19:44:31.903] [INF] [17] sending d, pos = 210, MsgSeqNum = 7
+[19:44:31.905] [INF] [17] [d,6] store state FixMsgStoreState { Length = 5, FirstSeq = 2, LastSeq = 6, ID = accept-comp }
+[19:44:31.923] [INF] [17] Sent security definition: Steel
+[19:44:31.923] [DBG] [17] OnRx return buffer 256
+[19:44:31.953] [DBG] [3] OnRx 147
+[19:44:31.955] [INF] [3] OnRx received 1 message
+[19:44:31.969] [INF] [3] [3,AD]: [0] 8 (BeginString) = FIX.5.0SP2 [FIX.5.0SP2], [1] 9 (BodyLength) = 0000117
+[2] 35 (MsgType) = AD [TradeCaptureReportRequest], [3] 49 (SenderCompID) = init-comp
+[4] 56 (TargetCompID) = accept-comp, [5] 34 (MsgSeqNum) = 3
+[6] 50 (SenderSubID) = SenderSubID, [7] 57 (TargetSubID) = fix
+[8] 52 (SendingTime) = 20260119-19:44:31.952, [9] 568 (TradeRequestID) = demo-request-1
+[10] 569 (TradeRequestType) = 0 [AllTrades], [11] 263 (SubscriptionRequestType) = 1 [SnapshotAndUpdates]
+[12] 10 (CheckSum) = 183
+[19:44:31.969] [DBG] [3] CheckSeqNo: AD seq=3, expected=3 (delta=1)
+[19:44:31.970] [DBG] [3] Message received in sequence: seq=3, expected now=4
+[19:44:31.970] [INF] [3] ascii forwarding msgType = 'AD' to application
+[19:44:31.973] [INF] [3] Received trade request: demo-request-1, SubscriptionType=1
+[19:44:31.985] [INF] [3] sending AQ, pos = 153, MsgSeqNum = 8
+[19:44:31.986] [INF] [3] [AQ,7] store state FixMsgStoreState { Length = 6, FirstSeq = 2, LastSeq = 7, ID = accept-comp }
+[19:44:31.987] [INF] [3] sending AE, pos = 231, MsgSeqNum = 9
+[19:44:31.994] [INF] [3] [AE,8] store state FixMsgStoreState { Length = 7, FirstSeq = 2, LastSeq = 8, ID = accept-comp }
+[19:44:31.994] [INF] [3] sending AE, pos = 236, MsgSeqNum = 10
+[19:44:31.994] [INF] [3] [AE,9] store state FixMsgStoreState { Length = 8, FirstSeq = 2, LastSeq = 9, ID = accept-comp }
+[19:44:31.995] [INF] [3] sending AE, pos = 241, MsgSeqNum = 11
+[19:44:31.995] [INF] [3] [AE,10] store state FixMsgStoreState { Length = 9, FirstSeq = 2, LastSeq = 10, ID = accept-comp }
+[19:44:31.995] [INF] [3] sending AE, pos = 236, MsgSeqNum = 12
+[19:44:31.996] [INF] [3] [AE,11] store state FixMsgStoreState { Length = 10, FirstSeq = 2, LastSeq = 11, ID = accept-comp }
+[19:44:31.996] [INF] [3] sending AE, pos = 235, MsgSeqNum = 13
+[19:44:31.996] [INF] [3] [AE,12] store state FixMsgStoreState { Length = 11, FirstSeq = 2, LastSeq = 12, ID = accept-comp }
+[19:44:31.996] [INF] [3] sending AQ, pos = 154, MsgSeqNum = 14
+[19:44:32.007] [INF] [3] [AQ,13] store state FixMsgStoreState { Length = 12, FirstSeq = 2, LastSeq = 13, ID = accept-comp }
+[19:44:32.014] [INF] [3] Client subscribed to updates - starting unsolicited trade timer
+[19:44:32.022] [DBG] [3] OnRx return buffer 256
+[19:44:32.028] [INF] [22] timer starting.
+[19:44:37.015] [INF] [3] Sending unsolicited batch #1 (2 trades)
+[19:44:37.015] [INF] [3] sending AE, pos = 233, MsgSeqNum = 15
+[19:44:37.016] [INF] [3] [AE,14] store state FixMsgStoreState { Length = 13, FirstSeq = 2, LastSeq = 14, ID = accept-comp }
+[19:44:37.016] [INF] [3] sending AE, pos = 237, MsgSeqNum = 16
