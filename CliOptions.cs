@@ -85,6 +85,12 @@ public class CliOptions
     /// </summary>
     public int? DisconnectAfter { get; set; }
 
+    /// <summary>
+    /// Number of client sessions to spawn (for testing multi-client acceptor).
+    /// Each client gets a unique SenderCompID suffix.
+    /// </summary>
+    public int Clients { get; set; } = 1;
+
     // ─────────────────────────────────────────────────────────────────────────
     // Computed Properties
     // ─────────────────────────────────────────────────────────────────────────
@@ -121,6 +127,7 @@ public class CliOptions
         rootCommand.AddOption(LogOption);
         rootCommand.AddOption(TimeoutOption);
         rootCommand.AddOption(DisconnectAfterOption);
+        rootCommand.AddOption(ClientsOption);
 
         return rootCommand;
     }
@@ -144,6 +151,7 @@ public class CliOptions
             Log = result.GetValueForOption(LogOption),
             Timeout = result.GetValueForOption(TimeoutOption),
             DisconnectAfter = result.GetValueForOption(DisconnectAfterOption),
+            Clients = result.GetValueForOption(ClientsOption),
         };
     }
 
@@ -199,6 +207,11 @@ public class CliOptions
     private static readonly Option<int?> DisconnectAfterOption = new(
         name: "--disconnect-after",
         description: "Disconnect transport after N seconds (for testing reconnection)");
+
+    private static readonly Option<int> ClientsOption = new(
+        name: "--clients",
+        getDefaultValue: () => 1,
+        description: "Number of client sessions to spawn, 1-5 (for testing multi-client acceptor)");
 }
 
 /// <summary>

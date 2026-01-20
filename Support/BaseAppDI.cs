@@ -34,7 +34,9 @@ public abstract class BaseAppDI
         _builder.Services.AddSingleton(factory);
         _builder.Services.AddSingleton(clock);
         _builder.Services.AddSingleton(config);
-        _builder.Services.AddSingleton<IMessageParser, AsciiParser>();
+        // NOTE: IMessageParser is NOT registered here - each session factory creates
+        // its own parser instance in MakeSession() to ensure thread isolation.
+        // Sharing a parser across sessions would cause race conditions.
         _builder.Services.AddSingleton<IMessageEncoder, AsciiEncoder>();
         _builder.Services.AddSingleton<IFixLogParser, FixLogParser>();
         _builder.Services.AddSingleton(config.Description);

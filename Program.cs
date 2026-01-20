@@ -31,6 +31,12 @@ async Task Run(CliOptions opt)
         return;
     }
 
+    if (opt.Clients < 1 || opt.Clients > 5)
+    {
+        Console.WriteLine("Error: --clients must be between 1 and 5");
+        return;
+    }
+
     var paths = new PathConfig();
 
     // Handle clear mode
@@ -126,16 +132,36 @@ async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig pat
 {
     PrintModeInfo(opt, paths.StoreDir);
 
+    var numClients = opt.Clients;
+    if (numClients > 1)
+    {
+        Console.WriteLine($"Multi-client mode: spawning {numClients} clients");
+        Console.WriteLine("Each client will have a unique SenderCompID suffix (_1, _2, etc.)");
+        Console.WriteLine();
+    }
+
     await WithGcMonitoring(async () =>
     {
         // Start server first
         var serverTask = StartSession(acceptorConfig, paths, "Server", opt);
         await Task.Delay(500); // Let server start listening
 
-        // Then start client
-        var clientTask = StartSession(initiatorConfig, paths, "Client", opt);
+        // Spawn N clients
+        var clientTasks = new List<Task>();
+        for (int i = 1; i <= numClients; i++)
+        {
+            // Each client needs a unique SenderCompID
+            var clientNum = i;
+            var clientName = numClients > 1 ? $"Client-{clientNum}" : "Client";
+            var senderSuffix = numClients > 1 ? $"_{clientNum}" : null;
 
-        await Task.WhenAll(serverTask, clientTask);
+            // Stagger client starts to avoid connection storms
+            if (i > 1) await Task.Delay(200);
+
+            clientTasks.Add(StartSession(initiatorConfig, paths, clientName, opt, senderSuffix));
+        }
+
+        await Task.WhenAll(serverTask, Task.WhenAll(clientTasks));
     }, opt.LogDir);
 
     Console.WriteLine("\nDemo complete!");
@@ -144,7 +170,7 @@ async Task RunBoth(string acceptorConfig, string initiatorConfig, PathConfig pat
 // ─────────────────────────────────────────────────────────────────────────────
 // Session Management
 // ─────────────────────────────────────────────────────────────────────────────
-async Task StartSession(string configPath, PathConfig paths, string name, CliOptions opt)
+async Task StartSession(string configPath, PathConfig paths, string name, CliOptions opt, string? senderSuffix = null)
 {
     Console.WriteLine($"Starting {name}{(opt.Skeleton ? " (skeleton)" : "")}...");
 
@@ -152,6 +178,14 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
     DemoClient.DisconnectAfterSeconds = opt.DisconnectAfter;
 
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
+
+    // For multi-client testing: append suffix to SenderCompID to create unique sessions
+    if (senderSuffix != null && config.Description is PureFix.Types.Config.SessionDescription desc)
+    {
+        var originalSender = desc.SenderCompID;
+        desc.SenderCompID = originalSender + senderSuffix;
+        Console.WriteLine($"  {name}: Modified SenderCompID: {originalSender} -> {desc.SenderCompID}");
+    }
 
     // Override store if directory specified
     if (!string.IsNullOrEmpty(opt.Store) && config is FixConfig fixConfig)
