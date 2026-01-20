@@ -730,8 +730,9 @@ test_multi_client() {
 
     # Check for wildcard TargetCompID working - server should respond with distinct TargetCompIDs
     # Server messages have format: 49=accept-comp|56=init-comp_X (server sending TO client X)
-    SERVER_TO_CLIENT1=$(echo "$OUTPUT" | grep -c "49=accept-comp|56=init-comp_1" || true)
-    SERVER_TO_CLIENT2=$(echo "$OUTPUT" | grep -c "49=accept-comp|56=init-comp_2" || true)
+    # Note: Must escape | in grep pattern as it's regex OR
+    SERVER_TO_CLIENT1=$(echo "$OUTPUT" | grep -c "49=accept-comp.*56=init-comp_1" || true)
+    SERVER_TO_CLIENT2=$(echo "$OUTPUT" | grep -c "49=accept-comp.*56=init-comp_2" || true)
     WILDCARD_UPDATES=$(echo "$OUTPUT" | grep -c "Wildcard TargetCompID" || true)
 
     print_header "RESULT"
