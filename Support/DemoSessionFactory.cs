@@ -23,6 +23,12 @@ public class DemoSessionFactory(
     : ISessionFactory
 {
     /// <summary>
+    /// Stores the original TargetCompID at factory construction time.
+    /// This is needed because the config's description may be modified by sessions.
+    /// </summary>
+    private readonly string? _originalTargetCompId = config.Description?.TargetCompID;
+
+    /// <summary>
     /// Tracks if the original config uses wildcard TargetCompID.
     /// When true, each session gets its own cloned description to avoid sharing state.
     /// </summary>
@@ -66,6 +72,13 @@ public class DemoSessionFactory(
             return (config, encoder);
 
         var clonedDesc = originalDesc.Clone();
+
+        // Ensure the clone has the original wildcard TargetCompID, not a value that may have
+        // been modified by a previous session. This is critical for multi-client support.
+        if (_originalTargetCompId == "*")
+        {
+            clonedDesc.TargetCompID = "*";
+        }
 
         // Create a new message factory with the cloned description so headers use per-session TargetCompID
         var perSessionMessageFactory = new Fix50SP2SessionMessageFactory(clonedDesc);
