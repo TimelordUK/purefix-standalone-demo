@@ -42,7 +42,7 @@
   "ResetSeqNumFlag": true,
   "HeartBtInt": 30,
   "SenderCompId": "accept-comp",
-  "TargetCompID": "init-comp",
+  "TargetCompID": "*",
   "TargetSubID": "fix",
   "DefaultApplVerID": "t2",
   "BeginString": "FIX.5.0SP2"

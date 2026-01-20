@@ -705,17 +705,21 @@ test_multi_client() {
     echo "concurrently without parser state corruption. Each session gets its own"
     echo "dedicated parser instance for thread safety."
     echo ""
+    echo "Also validates wildcard TargetCompID feature - server uses '*' in config"
+    echo "and dynamically adopts each client's SenderCompID as TargetCompID."
+    echo ""
 
     print_header "STEP 1: Start Server + 2 Clients"
     print_info "Starting acceptor with 2 initiators connecting concurrently..."
     print_info "Each client gets a unique SenderCompID suffix (_1, _2)"
+    print_info "Server uses wildcard TargetCompID='*' to accept any client"
     echo ""
 
     # Run skeleton mode with 2 clients for 15 seconds
     OUTPUT=$(dotnet run -- --skeleton --clients 2 --timeout 15 2>&1)
 
     # Display filtered output
-    echo "$OUTPUT" | grep -E 'Multi-client|Starting|Modified SenderCompID|SESSION|ready|Session ready|Timeout|timed out|Demo complete' || true
+    echo "$OUTPUT" | grep -E 'Multi-client|Starting|Modified SenderCompID|Wildcard|SESSION|ready|Session ready|Timeout|timed out|Demo complete' || true
 
     print_header "STEP 2: Verify Results"
 
@@ -724,25 +728,38 @@ test_multi_client() {
     CLIENT2_READY=$(echo "$OUTPUT" | grep -c "init-comp_2" || true)
     SESSION_READY=$(echo "$OUTPUT" | grep -c "Session ready" || true)
 
+    # Check for wildcard TargetCompID working - server should respond with distinct TargetCompIDs
+    # Server messages have format: 49=accept-comp|56=init-comp_X (server sending TO client X)
+    SERVER_TO_CLIENT1=$(echo "$OUTPUT" | grep -c "49=accept-comp|56=init-comp_1" || true)
+    SERVER_TO_CLIENT2=$(echo "$OUTPUT" | grep -c "49=accept-comp|56=init-comp_2" || true)
+    WILDCARD_UPDATES=$(echo "$OUTPUT" | grep -c "Wildcard TargetCompID" || true)
+
     print_header "RESULT"
 
     # We expect at least 2 "Session ready" messages (one per client)
     # and both client CompIDs to appear in the output
-    if [ "$SESSION_READY" -ge 2 ] && [ "$CLIENT1_READY" -gt 0 ] && [ "$CLIENT2_READY" -gt 0 ]; then
+    # and server responding with distinct TargetCompIDs for each client
+    if [ "$SESSION_READY" -ge 2 ] && [ "$CLIENT1_READY" -gt 0 ] && [ "$CLIENT2_READY" -gt 0 ] && \
+       [ "$SERVER_TO_CLIENT1" -gt 0 ] && [ "$SERVER_TO_CLIENT2" -gt 0 ]; then
         print_success "SUCCESS: Multi-client acceptor test passed"
         echo ""
         echo "Key observations:"
         echo "  1. Acceptor handled 2 concurrent client connections"
         echo "  2. Each client received unique SenderCompID (init-comp_1, init-comp_2)"
-        echo "  3. Each session created its own parser instance (thread isolation)"
-        echo "  4. Both sessions established and exchanged heartbeats"
-        echo "  5. No parser state corruption between sessions"
+        echo "  3. Wildcard TargetCompID updates: $WILDCARD_UPDATES (server adopted client CompIDs)"
+        echo "  4. Server responses to Client-1: $SERVER_TO_CLIENT1 messages with 56=init-comp_1"
+        echo "  5. Server responses to Client-2: $SERVER_TO_CLIENT2 messages with 56=init-comp_2"
+        echo "  6. Each session created its own parser instance (thread isolation)"
+        echo "  7. No parser state corruption between sessions"
         return 0
     else
         print_error "FAILED: Multi-client test did not complete successfully"
         echo "  Sessions ready: $SESSION_READY (expected >= 2)"
         echo "  Client 1 refs: $CLIENT1_READY"
         echo "  Client 2 refs: $CLIENT2_READY"
+        echo "  Server->Client1 (56=init-comp_1): $SERVER_TO_CLIENT1 (expected > 0)"
+        echo "  Server->Client2 (56=init-comp_2): $SERVER_TO_CLIENT2 (expected > 0)"
+        echo "  Wildcard updates: $WILDCARD_UPDATES"
         return 1
     fi
 }

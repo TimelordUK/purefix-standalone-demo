@@ -12,8 +12,12 @@ public class ConsoleLogFactory : ILogFactory
 
     public ConsoleLogFactory(ISessionDescription? description = null, string? logDir = null)
     {
-        // Use app name from config for log file naming (e.g., "test_client", "test_server")
-        var appName = description?.Application?.Name ?? "app";
+        // Use SenderCompID for log file naming to distinguish multi-client sessions
+        // Falls back to app name if SenderCompID not available
+        var senderCompId = description?.SenderCompID;
+        var appName = !string.IsNullOrEmpty(senderCompId)
+            ? senderCompId
+            : (description?.Application?.Name ?? "app");
 
         var appConfig = new LoggerConfiguration()
             .MinimumLevel.Debug()

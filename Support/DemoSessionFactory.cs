@@ -1,8 +1,10 @@
 using PureFix.Buffer;
 using PureFix.Buffer.Ascii;
+using PureFix.Transport;
 using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
+using PureFix.Types.Config;
 
 namespace TradeCaptureDemo.Support;
 
@@ -20,6 +22,12 @@ public class DemoSessionFactory(
     IFixClock clock)
     : ISessionFactory
 {
+    /// <summary>
+    /// Tracks if the original config uses wildcard TargetCompID.
+    /// When true, each session gets its own cloned description to avoid sharing state.
+    /// </summary>
+    private readonly bool _isWildcardMode = config.Description?.TargetCompID == "*" && !config.IsInitiator();
+
     public FixSession MakeSession()
     {
         // Create a NEW parser per session to ensure thread isolation.
@@ -31,10 +39,54 @@ public class DemoSessionFactory(
             Delimiter = config.Delimiter
         };
 
+        // For wildcard mode acceptors, create a per-session config with cloned description.
+        // This prevents sessions from sharing the TargetCompID field which gets updated
+        // from each client's SenderCompID during Logon.
+        if (_isWildcardMode)
+        {
+            var (sessionConfig, sessionEncoder) = CreatePerSessionConfigAndEncoder();
+            return new DemoServer(sessionConfig, fixLogRecovery, logFactory, fixMessageFactory, parser, sessionEncoder, clock);
+        }
+
         FixSession entity = config.IsInitiator()
             ? new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock)
             : new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
 
         return entity;
+    }
+
+    /// <summary>
+    /// Creates a per-session config and encoder with a cloned description for wildcard mode.
+    /// Each session gets its own TargetCompID that can be updated from the client's SenderCompID.
+    /// The encoder must also be per-session because it uses the message factory to build headers.
+    /// </summary>
+    private (IFixConfig, IMessageEncoder) CreatePerSessionConfigAndEncoder()
+    {
+        if (config.Description is not SessionDescription originalDesc)
+            return (config, encoder);
+
+        var clonedDesc = originalDesc.Clone();
+
+        // Create a new message factory with the cloned description so headers use per-session TargetCompID
+        var perSessionMessageFactory = new Fix50SP2SessionMessageFactory(clonedDesc);
+
+        var perSessionConfig = new FixConfig
+        {
+            Definitions = config.Definitions,
+            Description = clonedDesc,
+            MessageFactory = perSessionMessageFactory,
+            SessionStoreFactory = config.SessionStoreFactory,
+            SessionRegistry = config.SessionRegistry
+        };
+
+        // Create a new encoder with the cloned description and per-session message factory
+        // This is critical - the encoder uses the message factory to build headers!
+        var perSessionEncoder = new AsciiEncoder(
+            config.Definitions!,
+            clonedDesc,
+            perSessionMessageFactory,
+            clock);
+
+        return (perSessionConfig, perSessionEncoder);
     }
 }
