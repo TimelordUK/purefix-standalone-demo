@@ -92,6 +92,16 @@ public class CliOptions
     public int Clients { get; set; } = 1;
 
     // ─────────────────────────────────────────────────────────────────────────
+    // Validation Options
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Validation mode override: none, lenient, strict.
+    /// If not specified, uses the mode from the session config file.
+    /// </summary>
+    public string? Validation { get; set; }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Computed Properties
     // ─────────────────────────────────────────────────────────────────────────
 
@@ -129,6 +139,9 @@ public class CliOptions
         rootCommand.AddOption(DisconnectAfterOption);
         rootCommand.AddOption(ClientsOption);
 
+        // Validation options
+        rootCommand.AddOption(ValidationOption);
+
         return rootCommand;
     }
 
@@ -152,6 +165,7 @@ public class CliOptions
             Timeout = result.GetValueForOption(TimeoutOption),
             DisconnectAfter = result.GetValueForOption(DisconnectAfterOption),
             Clients = result.GetValueForOption(ClientsOption),
+            Validation = result.GetValueForOption(ValidationOption),
         };
     }
 
@@ -212,6 +226,10 @@ public class CliOptions
         name: "--clients",
         getDefaultValue: () => 1,
         description: "Number of client sessions to spawn, 1-5 (for testing multi-client acceptor)");
+
+    private static readonly Option<string?> ValidationOption = new(
+        aliases: ["--validation", "-V"],
+        description: "Validation mode override: none, lenient, strict (default: from config)");
 }
 
 /// <summary>

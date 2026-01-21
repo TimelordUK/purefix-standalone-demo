@@ -5,6 +5,7 @@ using PureFix.Transport.Session;
 using PureFix.Transport.SocketTransport;
 using PureFix.Transport.Store;
 using PureFix.Types;
+using PureFix.Types.Validation;
 using Serilog;
 using TradeCaptureDemo;
 using TradeCaptureDemo.Support;
@@ -191,6 +192,28 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
     if (!string.IsNullOrEmpty(opt.Store) && config is FixConfig fixConfig)
     {
         fixConfig.SessionStoreFactory = new FileSessionStoreFactory(opt.Store);
+    }
+
+    // Override validation mode if specified via CLI
+    if (!string.IsNullOrEmpty(opt.Validation) && config is FixConfig validationConfig)
+    {
+        var mode = opt.Validation.ToLowerInvariant() switch
+        {
+            "none" => ValidationMode.None,
+            "lenient" => ValidationMode.Lenient,
+            "strict" => ValidationMode.Strict,
+            _ => (ValidationMode?)null
+        };
+
+        if (mode.HasValue)
+        {
+            validationConfig.Validation = new ValidationConfig { Mode = mode.Value, CheckChecksum = true, CheckBodyLength = false };
+            Console.WriteLine($"  Validation: {mode.Value} (from --validation flag)");
+        }
+        else
+        {
+            Console.WriteLine($"  Warning: Unknown validation mode '{opt.Validation}', using config default");
+        }
     }
 
     var storeType = opt.Store != null ? "file" : (config.Description?.Store?.Type ?? "memory");
