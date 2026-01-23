@@ -8,7 +8,7 @@ using PureFix.Types;
 using PureFix.Types.Validation;
 using Serilog;
 using TradeCaptureDemo;
-using TradeCaptureDemo.Support;
+using TradeCaptureDemo.Infrastructure;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CLI Setup
@@ -175,8 +175,8 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
 {
     Console.WriteLine($"Starting {name}{(opt.Skeleton ? " (skeleton)" : "")}...");
 
-    // Set disconnect-after option for DemoClient (static property)
-    DemoClient.DisconnectAfterSeconds = opt.DisconnectAfter;
+    // Set disconnect-after option for TradeCaptureClient (static property)
+    TradeCaptureClient.DisconnectAfterSeconds = opt.DisconnectAfter;
 
     var config = FixConfig.MakeConfigFromPaths(paths.DictRootPath, configPath);
 
@@ -228,7 +228,7 @@ async Task StartSession(string configPath, PathConfig paths, string name, CliOpt
 
     BaseAppDI host = opt.Skeleton
         ? new SkeletonHost(logFactory, clock, config)
-        : new DemoHost(logFactory, clock, config);
+        : new TradeCaptureHost(logFactory, clock, config);
 
     var entity = host.Resolve<ITcpEntity>();
     if (entity != null)

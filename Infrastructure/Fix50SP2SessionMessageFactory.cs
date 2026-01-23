@@ -4,7 +4,7 @@ using PureFix.Types.Config;
 using TradeCaptureDemo.Types.FIX50SP2TC;
 using TradeCaptureDemo.Types.FIX50SP2TC.Components;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 public class Fix50SP2SessionMessageFactory(ISessionDescription sessionDescription) : ISessionMessageFactory
 {

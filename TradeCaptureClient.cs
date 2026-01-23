@@ -4,11 +4,16 @@ using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Core;
+using TradeCaptureDemo.Infrastructure;
 using TradeCaptureDemo.Types.FIX50SP2TC;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo;
 
-internal class DemoClient : BaseApp
+/// <summary>
+/// Trade Capture Client - connects to server and requests securities and trades.
+/// Sends SecurityDefinitionRequest, then TradeCaptureReportRequest once securities are received.
+/// </summary>
+internal class TradeCaptureClient : BaseApp
 {
     /// <summary>
     /// If set, disconnect the transport after this many seconds (for testing reconnection)
@@ -23,7 +28,7 @@ internal class DemoClient : BaseApp
     private bool _hasSentTradeRequest;
     private bool _hasScheduledDisconnect;
 
-    public DemoClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
+    public TradeCaptureClient(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
     {
         m_logReceivedMessages = true;

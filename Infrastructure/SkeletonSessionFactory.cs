@@ -6,11 +6,11 @@ using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Config;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 /// <summary>
 /// Session factory for skeleton mode.
-/// Creates SkeletonHandler for both initiator and acceptor roles.
+/// Creates TradeCaptureHandler for both initiator and acceptor roles.
 /// Creates a fresh parser per session to ensure thread isolation.
 /// Supports wildcard TargetCompID for multi-client acceptors.
 /// </summary>
@@ -45,10 +45,10 @@ public class SkeletonSessionFactory(
         if (_isWildcardMode)
         {
             var (sessionConfig, sessionEncoder) = CreatePerSessionConfigAndEncoder();
-            return new SkeletonHandler(sessionConfig, fixLogRecovery, logFactory, fixMessageFactory, parser, sessionEncoder, clock);
+            return new TradeCaptureHandler(sessionConfig, fixLogRecovery, logFactory, fixMessageFactory, parser, sessionEncoder, clock);
         }
 
-        return new SkeletonHandler(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
+        return new TradeCaptureHandler(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
     }
 
     /// <summary>

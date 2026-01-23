@@ -3,19 +3,20 @@ using PureFix.Transport.Ascii;
 using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
+using TradeCaptureDemo.Infrastructure;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo;
 
 /// <summary>
 /// Minimal skeleton handler for GC baseline testing.
 /// Does nothing on application messages - only session-level heartbeats flow after logon.
 /// Use this with --skeleton flag to measure baseline GC overhead of the FIX engine.
 /// </summary>
-internal class SkeletonHandler : BaseApp
+internal class TradeCaptureHandler : BaseApp
 {
     private readonly string _role;
 
-    public SkeletonHandler(
+    public TradeCaptureHandler(
         IFixConfig config,
         IFixLogRecovery? fixLogRecover,
         ILogFactory logFactory,

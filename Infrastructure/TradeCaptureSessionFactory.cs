@@ -6,14 +6,14 @@ using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Config;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 /// <summary>
 /// Session factory that creates a fresh parser per session.
 /// This ensures thread isolation - each session has its own parse state.
 /// Critical for acceptors with multiple concurrent clients.
 /// </summary>
-public class DemoSessionFactory(
+public class TradeCaptureSessionFactory(
     IFixConfig config,
     IFixLogRecovery? fixLogRecovery,
     ILogFactory logFactory,
@@ -51,12 +51,12 @@ public class DemoSessionFactory(
         if (_isWildcardMode)
         {
             var (sessionConfig, sessionEncoder) = CreatePerSessionConfigAndEncoder();
-            return new DemoServer(sessionConfig, fixLogRecovery, logFactory, fixMessageFactory, parser, sessionEncoder, clock);
+            return new TradeCaptureServer(sessionConfig, fixLogRecovery, logFactory, fixMessageFactory, parser, sessionEncoder, clock);
         }
 
         FixSession entity = config.IsInitiator()
-            ? new DemoClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock)
-            : new DemoServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
+            ? new TradeCaptureClient(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock)
+            : new TradeCaptureServer(config, fixLogRecovery, logFactory, fixMessageFactory, parser, encoder, clock);
 
         return entity;
     }

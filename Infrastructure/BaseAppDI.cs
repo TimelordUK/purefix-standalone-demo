@@ -9,7 +9,7 @@ using PureFix.Transport.SocketTransport;
 using PureFix.Transport;
 using PureFix.Transport.Recovery;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 public abstract class BaseAppDI
 {
@@ -42,7 +42,7 @@ public abstract class BaseAppDI
         _builder.Services.AddSingleton(config.Description);
         _builder.Services.AddSingleton(config.Definitions);
         _builder.Services.AddSingleton(config.Description.Application);
-       
+
         var msgStore = new FixMsgMemoryStore(config.Description.SenderCompID);
         _builder.Services.AddSingleton<IFixMsgStore>(msgStore);
         _builder.Services.AddSingleton<IFixLogParser, FixLogParser>();

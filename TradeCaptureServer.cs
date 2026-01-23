@@ -4,12 +4,17 @@ using PureFix.Transport.Recovery;
 using PureFix.Transport.Session;
 using PureFix.Types;
 using PureFix.Types.Core;
+using TradeCaptureDemo.Infrastructure;
 using TradeCaptureDemo.Types.FIX50SP2TC;
 using TradeCaptureDemo.Types.FIX50SP2TC.Components;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo;
 
-internal class DemoServer : BaseApp
+/// <summary>
+/// Trade Capture Server - handles incoming FIX requests and sends trade reports.
+/// Responds to SecurityDefinitionRequest and TradeCaptureReportRequest messages.
+/// </summary>
+internal class TradeCaptureServer : BaseApp
 {
     private readonly FixMessageFactory m_msg_factory = new();
     private int _nextTradeId = 100000;
@@ -17,7 +22,7 @@ internal class DemoServer : BaseApp
     private readonly string[] _securities = ["Gold", "Silver", "Platinum", "Copper", "Steel"];
     private CancellationTokenSource? _tradeTimerCts;
 
-    public DemoServer(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
+    public TradeCaptureServer(IFixConfig config, IFixLogRecovery? fixLogRecover, ILogFactory logFactory, IFixMessageFactory fixMessageFactory, IMessageParser parser, IMessageEncoder encoder, IFixClock clock)
         : base(config, fixLogRecover, logFactory, fixMessageFactory, parser, encoder, clock)
     {
         m_logReceivedMessages = true;

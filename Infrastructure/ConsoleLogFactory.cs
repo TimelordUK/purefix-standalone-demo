@@ -3,7 +3,7 @@ using PureFix.Types.Config;
 using Serilog;
 using Serilog.Events;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 public class ConsoleLogFactory : ILogFactory
 {

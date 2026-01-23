@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using PureFix.Transport.Session;
 using PureFix.Types;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 public class AppHost<T, U, V> : BaseAppDI
     where T : class, ISessionFactory

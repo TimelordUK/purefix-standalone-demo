@@ -2,7 +2,7 @@ using PureFix.Transport.Session;
 using PureFix.Types;
 using TradeCaptureDemo.Types.FIX50SP2TC;
 
-namespace TradeCaptureDemo.Support;
+namespace TradeCaptureDemo.Infrastructure;
 
 /// <summary>
 /// DI host for skeleton mode.

@@ -107,9 +107,22 @@ Writes detailed FIX message logs to the `logs/` directory.
 ```
 purefix-standalone-demo/
 ├── Program.cs                 # Entry point, mode selection
+├── TradeCaptureServer.cs      # Server session logic (acceptor) - modify this
+├── TradeCaptureClient.cs      # Client session logic (initiator) - modify this
+├── TradeCaptureHandler.cs     # Skeleton handler for GC baseline testing
+├── CliOptions.cs              # CLI argument definitions
 ├── TradeCaptureDemo.csproj    # Main project
 ├── TradeCaptureDemo.sln       # Solution file
 ├── Directory.Build.targets    # MSBuild targets for code generation
+├── Infrastructure/            # Plumbing (typically no need to modify)
+│   ├── TradeCaptureHost.cs           # DI container setup
+│   ├── TradeCaptureSessionFactory.cs # Creates client/server sessions
+│   ├── SkeletonHost.cs               # DI host for skeleton mode
+│   ├── SkeletonSessionFactory.cs     # Creates skeleton sessions
+│   ├── AppHost.cs                    # Generic DI host base
+│   ├── BaseAppDI.cs                  # DI service registration
+│   ├── ConsoleLogFactory.cs          # Serilog-based logging
+│   └── Fix50SP2SessionMessageFactory.cs # Session message factory
 ├── Data/
 │   ├── FIX50SP2-TC.xml        # FIX dictionary (customized for Trade Capture)
 │   ├── FIX50SP2.xml           # Standard FIX 5.0 SP2 dictionary
@@ -125,11 +138,7 @@ purefix-standalone-demo/
 │       ├── Logon.cs, Heartbeat.cs... # Session messages
 │       ├── Components/               # Reusable components
 │       └── Enums/                    # Field value enumerations
-└── Support/
-    ├── DemoHost.cs            # DI container setup
-    ├── DemoClient.cs          # Client session logic
-    ├── DemoServer.cs          # Server session logic
-    └── ...
+└── Controllers/               # (Future) ASP.NET controllers for web dashboard
 ```
 
 ## How Type Generation Works
@@ -230,11 +239,11 @@ public static class TradeReportTransTypeValues
 
 The generated types are integrated via generic type parameters and DI:
 
-### 1. DemoHost Configuration
+### 1. TradeCaptureHost Configuration
 
 ```csharp
-// Support/DemoHost.cs
-internal class DemoHost : AppHost<DemoSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>
+// Infrastructure/TradeCaptureHost.cs
+internal class TradeCaptureHost : AppHost<TradeCaptureSessionFactory, FixMessageFactory, Fix50SP2SessionMessageFactory>
 {
     // FixMessageFactory = generated factory for parsing incoming messages
     // Fix50SP2SessionMessageFactory = factory for session messages (Logon, etc.)
@@ -244,7 +253,7 @@ internal class DemoHost : AppHost<DemoSessionFactory, FixMessageFactory, Fix50SP
 ### 2. AppHost DI Registration
 
 ```csharp
-// Support/AppHost.cs
+// Infrastructure/AppHost.cs
 public class AppHost<T, U, V> : BaseAppDI
     where U : class, IFixMessageFactory
 {
@@ -259,7 +268,7 @@ public class AppHost<T, U, V> : BaseAppDI
 ### 3. Message Handling
 
 ```csharp
-// Support/DemoClient.cs
+// TradeCaptureClient.cs
 protected override Task OnApplicationMsg(string msgType, IMessageView view)
 {
     switch (msgType)
