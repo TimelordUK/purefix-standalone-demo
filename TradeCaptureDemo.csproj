@@ -25,6 +25,7 @@
     <!-- Serilog for logging -->
     <PackageReference Include="Serilog" Version="4.2.0" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
 
@@ -37,6 +38,10 @@
   <ItemGroup>
     <!-- Copy Data files to output -->
     <None Update="Data\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Copy appsettings.json to output -->
+    <None Update="appsettings.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>

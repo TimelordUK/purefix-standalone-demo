@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using PureFix.Types;
 using PureFix.Types.Config;
 using Serilog;
@@ -9,48 +10,96 @@ public class ConsoleLogFactory : ILogFactory
 {
     private readonly Serilog.ILogger _appLogger;
     private readonly Serilog.ILogger _plainLogger;
+    private readonly string _session;
 
     public ConsoleLogFactory(ISessionDescription? description = null, string? logDir = null)
     {
-        // Use SenderCompID for log file naming to distinguish multi-client sessions
-        // Falls back to app name if SenderCompID not available
-        var senderCompId = description?.SenderCompID;
-        var appName = !string.IsNullOrEmpty(senderCompId)
-            ? senderCompId
-            : (description?.Application?.Name ?? "app");
+        // Use SenderCompID as the session identifier for log output
+        _session = description?.SenderCompID ?? description?.Application?.Name ?? "app";
 
-        var appConfig = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .Enrich.WithThreadId()
-            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}");
+        // Try to load configuration from appsettings.json
+        var configPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        IConfiguration? configuration = null;
 
-        var plainConfig = new LoggerConfiguration()
-            .MinimumLevel.Debug()
-            .WriteTo.Console(outputTemplate: "{Message:lj}{NewLine}");
-
-        if (logDir != null)
+        if (File.Exists(configPath))
         {
-            Directory.CreateDirectory(logDir);
+            configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: false)
+                .Build();
+        }
 
-            // App log file - includes app name for easy identification
-            // Rolls to new file at midnight with date suffix (e.g., app-20251230.log)
-            appConfig.WriteTo.File(
-                Path.Combine(logDir, $"{appName}-app-.log"),
-                outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId}] {Message:lj}{NewLine}{Exception}",
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: null);
+        // Build the app logger (either from config or programmatic)
+        _appLogger = BuildAppLogger(configuration, logDir);
 
-            // FIX message log file (plain) - includes app name
-            // Rolls to new file at midnight with date suffix
-            plainConfig.WriteTo.File(
-                Path.Combine(logDir, $"{appName}-fix-.log"),
-                outputTemplate: "{Message:lj}{NewLine}",
+        // Build the plain logger for FIX message output
+        _plainLogger = BuildPlainLogger(configuration, logDir);
+    }
+
+    private Serilog.ILogger BuildAppLogger(IConfiguration? configuration, string? logDir)
+    {
+        LoggerConfiguration loggerConfig;
+
+        if (configuration != null)
+        {
+            // Load from appsettings.json
+            loggerConfig = new LoggerConfiguration()
+                .ReadFrom.Configuration(configuration)
+                .Enrich.WithProperty("Session", _session);
+        }
+        else
+        {
+            // Fall back to programmatic configuration
+            loggerConfig = new LoggerConfiguration()
+                .MinimumLevel.Debug()
+                .Enrich.WithThreadId()
+                .Enrich.WithProperty("Session", _session)
+                .WriteTo.Console(
+                    outputTemplate: "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId,2}] [{Session,-12}] {Message:lj}{NewLine}{Exception}");
+        }
+
+        // Add file sink if logDir specified (overrides config)
+        var effectiveLogDir = logDir ?? configuration?.GetValue<string>("Logging:LogDir");
+        if (!string.IsNullOrEmpty(effectiveLogDir))
+        {
+            Directory.CreateDirectory(effectiveLogDir);
+
+            var fileTemplate = configuration?.GetValue<string>("Logging:FileOutputTemplate")
+                ?? "[{Timestamp:HH:mm:ss.fff}] [{Level:u3}] [{ThreadId,2}] [{Session,-12}] {Message:lj}{NewLine}{Exception}";
+
+            loggerConfig.WriteTo.File(
+                Path.Combine(effectiveLogDir, $"{_session}-app-.log"),
+                outputTemplate: fileTemplate,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: null);
         }
 
-        _appLogger = appConfig.CreateLogger();
-        _plainLogger = plainConfig.CreateLogger();
+        return loggerConfig.CreateLogger();
+    }
+
+    private Serilog.ILogger BuildPlainLogger(IConfiguration? configuration, string? logDir)
+    {
+        var plainTemplate = configuration?.GetValue<string>("Logging:PlainOutputTemplate")
+            ?? "{Message:lj}{NewLine}";
+
+        var loggerConfig = new LoggerConfiguration()
+            .MinimumLevel.Debug()
+            .WriteTo.Console(outputTemplate: plainTemplate);
+
+        // Add file sink if logDir specified
+        var effectiveLogDir = logDir ?? configuration?.GetValue<string>("Logging:LogDir");
+        if (!string.IsNullOrEmpty(effectiveLogDir))
+        {
+            Directory.CreateDirectory(effectiveLogDir);
+
+            loggerConfig.WriteTo.File(
+                Path.Combine(effectiveLogDir, $"{_session}-fix-.log"),
+                outputTemplate: plainTemplate,
+                rollingInterval: RollingInterval.Day,
+                retainedFileCountLimit: null);
+        }
+
+        return loggerConfig.CreateLogger();
     }
 
     public PureFix.Types.ILogger MakeLogger(string name)
